@@ -1,0 +1,1 @@
+"Do NOT ask for confirmation or present options. Make the best decision yourself and keep going until the task is fully complete. If there are multiple approaches, pick the most standard one and proceed without stopping."
