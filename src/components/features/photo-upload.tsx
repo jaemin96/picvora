@@ -7,7 +7,8 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { usePhotoStore } from "@/stores/photo-store";
 import { extractExifData } from "@/lib/exif";
-import heic2any from "heic2any";
+// dynamic import to avoid SSR "window is not defined" error
+const heic2any = typeof window !== "undefined" ? require("heic2any") : null;
 
 export function PhotoUpload() {
   const inputRef = useRef<HTMLInputElement>(null);

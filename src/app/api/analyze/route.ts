@@ -1,5 +1,52 @@
 import { NextRequest, NextResponse } from "next/server";
+import sharp from "sharp";
 import { analyzeImage } from "@/lib/claude";
+
+const MAX_BYTES = 5 * 1024 * 1024; // 5MB (Anthropic 제한)
+
+async function compressImage(
+  buffer: Buffer,
+  mimeType: string
+): Promise<{ base64: string; mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif" }> {
+  // 원본이 5MB 이하면 그대로 사용
+  if (buffer.length <= MAX_BYTES) {
+    return {
+      base64: buffer.toString("base64"),
+      mediaType: mimeType as "image/jpeg" | "image/png" | "image/webp" | "image/gif",
+    };
+  }
+
+  // 5MB 넘으면 JPEG으로 리사이즈
+  const widths = [2048, 1600, 1200];
+  const qualities = [80, 60, 40];
+
+  for (const width of widths) {
+    for (const quality of qualities) {
+      const resized = await sharp(buffer)
+        .resize({ width, withoutEnlargement: true })
+        .jpeg({ quality })
+        .toBuffer();
+
+      if (resized.length <= MAX_BYTES) {
+        return {
+          base64: resized.toString("base64"),
+          mediaType: "image/jpeg",
+        };
+      }
+    }
+  }
+
+  // 최후의 수단: 작은 크기로 강제 압축
+  const resized = await sharp(buffer)
+    .resize({ width: 800 })
+    .jpeg({ quality: 40 })
+    .toBuffer();
+
+  return {
+    base64: resized.toString("base64"),
+    mediaType: "image/jpeg",
+  };
+}
 
 // exifr는 브라우저용이므로 서버에서는 간단히 EXIF 컨텍스트 문자열만 구성
 function buildExifContext(exif: Record<string, string | undefined>): string {
@@ -30,16 +77,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 이미지를 base64로 변환
+    // 이미지를 base64로 변환 (5MB 초과 시 자동 압축)
     const bytes = await imageFile.arrayBuffer();
-    const base64 = Buffer.from(bytes).toString("base64");
-
-    // 미디어 타입 결정
-    const contentType = imageFile.type as
-      | "image/jpeg"
-      | "image/png"
-      | "image/webp"
-      | "image/gif";
+    const buffer = Buffer.from(bytes);
+    const { base64, mediaType: contentType } = await compressImage(
+      buffer,
+      imageFile.type
+    );
 
     // 클라이언트에서 보낸 EXIF 정보를 formData에서 가져오기 (선택)
     const exifRaw = formData.get("exif") as string | null;
