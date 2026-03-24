@@ -19,12 +19,11 @@ export type LocationInfo = {
   longitude: number;
 };
 
-export type PhotoAnalysis = {
-  tags: string[];
-  mood: string;
-  shortcutMessage: string;
-  nearbyPlaces: NearbyPlace[];
-  directions?: string;
+export type TagType = "mood" | "location" | "time" | "subject" | "specialty";
+
+export type Tag = {
+  label: string;
+  type: TagType;
 };
 
 export type NearbyPlace = {
@@ -32,6 +31,28 @@ export type NearbyPlace = {
   category: "restaurant" | "cafe" | "attraction" | "landmark";
   distance?: string;
   description?: string;
+  address?: string;
+};
+
+export type PhotoAnalysis = {
+  tags: Tag[];
+  mood: string;
+  shortcutMessage: string;
+  nearbyPlaces: NearbyPlace[];
+  specialties: string[];
+  directions?: string;
+};
+
+export type AnalyzeResponse = {
+  exif: ExifData;
+  location?: LocationInfo;
+  analysis: PhotoAnalysis;
+};
+
+export type LocationResponse = {
+  address: string;
+  places: NearbyPlace[];
+  specialties: string[];
 };
 
 export type PhotoCard = {
