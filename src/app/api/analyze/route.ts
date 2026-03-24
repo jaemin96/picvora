@@ -3,13 +3,15 @@ import sharp from "sharp";
 import { analyzeImage } from "@/lib/claude";
 
 const MAX_BYTES = 5 * 1024 * 1024; // 5MB (Anthropic 제한)
+// base64 인코딩 시 ~1.37배 커지므로 원본 기준은 더 낮게 잡아야 함
+const MAX_RAW_BYTES = Math.floor(MAX_BYTES / 1.37); // ~3.7MB
 
 async function compressImage(
   buffer: Buffer,
   mimeType: string
 ): Promise<{ base64: string; mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif" }> {
-  // 원본이 5MB 이하면 그대로 사용
-  if (buffer.length <= MAX_BYTES) {
+  // 원본이 3.7MB 이하면 그대로 사용 (base64 후 5MB 이내)
+  if (buffer.length <= MAX_RAW_BYTES) {
     return {
       base64: buffer.toString("base64"),
       mediaType: mimeType as "image/jpeg" | "image/png" | "image/webp" | "image/gif",
@@ -27,7 +29,7 @@ async function compressImage(
         .jpeg({ quality })
         .toBuffer();
 
-      if (resized.length <= MAX_BYTES) {
+      if (resized.length <= MAX_RAW_BYTES) {
         return {
           base64: resized.toString("base64"),
           mediaType: "image/jpeg",

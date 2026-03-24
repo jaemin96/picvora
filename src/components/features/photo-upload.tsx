@@ -27,7 +27,10 @@ export function PhotoUpload() {
 
   const handleFile = useCallback(
     async (file: File) => {
-      if (!file.type.startsWith("image/")) {
+      const isHeicByName =
+        file.name.toLowerCase().endsWith(".heic") ||
+        file.name.toLowerCase().endsWith(".heif");
+      if (!file.type.startsWith("image/") && !isHeicByName) {
         setError("이미지 파일만 업로드할 수 있습니다.");
         return;
       }
@@ -271,7 +274,7 @@ export function PhotoUpload() {
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,.heic,.heif"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
