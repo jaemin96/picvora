@@ -1,12 +1,13 @@
 "use client";
 
 import { Camera, Plus, ImageIcon, LogOut, User } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { UploadFlow } from "@/components/features/upload-flow";
 import { LikeButton } from "@/components/features/like-button";
+import { LocationFilter, type LocationSelection } from "@/components/features/location-filter";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 
@@ -23,10 +24,17 @@ export default function Home() {
   const [cards, setCards] = useState<CardSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
+  const [filters, setFilters] = useState<LocationSelection[]>([]);
 
-  const fetchCards = async () => {
+  const fetchCards = useCallback(async (selections?: LocationSelection[]) => {
     try {
-      const res = await fetch("/api/cards");
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (selections && selections.length > 0) {
+        params.set("filters", JSON.stringify(selections));
+      }
+      const qs = params.toString();
+      const res = await fetch(`/api/cards${qs ? `?${qs}` : ""}`);
       const data = await res.json();
       setCards(data.cards ?? []);
     } catch {
@@ -34,15 +42,20 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchCards();
-  }, []);
+  }, [fetchCards]);
+
+  const handleFilterChange = (selections: LocationSelection[]) => {
+    setFilters(selections);
+    fetchCards(selections);
+  };
 
   const handlePublished = () => {
     setShowUpload(false);
-    fetchCards();
+    fetchCards(filters);
   };
 
   const handleLogout = async () => {
@@ -88,8 +101,11 @@ export default function Home() {
         </div>
       </header>
 
-      {/* 목록 */}
+      {/* 필터 + 목록 */}
       <div className="mx-auto w-full max-w-2xl px-4 py-6">
+        <div className="mb-4">
+          <LocationFilter onFilterChange={handleFilterChange} />
+        </div>
         {loading ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (

@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   const mine = request.nextUrl.searchParams.get("mine") === "true";
+  const filtersParam = request.nextUrl.searchParams.get("filters"); // JSON: [{region, city?}]
 
   const supabase = createClient();
   const {
@@ -22,6 +23,24 @@ export async function GET(request: NextRequest) {
 
   if (mine) {
     query = query.eq("user_id", user.id);
+  }
+
+  // 다중 지역 필터링
+  if (filtersParam) {
+    try {
+      const filters: { region: string; city: string | null }[] = JSON.parse(filtersParam);
+      if (filters.length > 0) {
+        // OR 조건: 각 필터에 해당하는 주소 패턴 생성
+        const patterns = filters.map((f) =>
+          f.city
+            ? `address.ilike.%${f.region}%${f.city}%`
+            : `address.ilike.${f.region}%`
+        );
+        query = query.or(patterns.join(","));
+      }
+    } catch {
+      // JSON 파싱 실패 시 필터 무시
+    }
   }
 
   const { data, error } = await query;
