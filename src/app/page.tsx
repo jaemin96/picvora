@@ -1,7 +1,7 @@
 "use client";
 
 import { Camera, Plus, ImageIcon, LogOut, User } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,10 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
   const [filters, setFilters] = useState<LocationSelection[]>([]);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string>("");
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const fetchCards = useCallback(async (selections?: LocationSelection[]) => {
     try {
@@ -47,6 +51,29 @@ export default function Home() {
   useEffect(() => {
     fetchCards();
   }, [fetchCards]);
+
+  // Fetch user profile for avatar
+  useEffect(() => {
+    fetch("/api/profile")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.avatar_url) setAvatarUrl(data.avatar_url);
+        if (data.display_name) setDisplayName(data.display_name);
+        else if (data.email) setDisplayName(data.email);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Close menu on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
   const handleFilterChange = (selections: LocationSelection[]) => {
     setFilters(selections);
@@ -75,28 +102,55 @@ export default function Home() {
             </div>
             <span className="text-xl font-bold tracking-tight">Picvora</span>
           </div>
-          <div className="flex items-center gap-1">
-            <Button
+          <div className="flex items-center gap-2.5">
+            <button
               onClick={() => setShowUpload(true)}
-              size="sm"
-              className="gap-1.5"
+              className="flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
               <Plus className="h-4 w-4" />
               새 사진
-            </Button>
-            <Link href="/my">
-              <Button size="sm" variant="ghost" className="text-muted-foreground">
-                <User className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Button
-              onClick={handleLogout}
-              size="sm"
-              variant="ghost"
-              className="text-muted-foreground"
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
+            </button>
+            <div className="relative flex items-center" ref={menuRef}>
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border-2 border-border transition-all hover:border-primary/60"
+              >
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={avatarUrl}
+                    alt="프로필"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-violet-500 text-white text-sm font-bold">
+                    {(displayName || "U")[0].toUpperCase()}
+                  </div>
+                )}
+              </button>
+              {showMenu && (
+                <div className="absolute right-0 top-full mt-2 w-40 overflow-hidden rounded-xl border border-border bg-background shadow-lg">
+                  <Link
+                    href="/my"
+                    onClick={() => setShowMenu(false)}
+                    className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
+                  >
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    마이페이지
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      handleLogout();
+                    }}
+                    className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-muted transition-colors"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    로그아웃
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>

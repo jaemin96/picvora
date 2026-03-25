@@ -1,9 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Camera, ImageIcon, Heart } from "lucide-react";
+import {
+  ArrowLeft,
+  Camera,
+  ImageIcon,
+  Heart,
+  Pencil,
+  Check,
+  X,
+  Eye,
+  EyeOff,
+  Loader2,
+} from "lucide-react";
 import { motion } from "framer-motion";
 import { LikeButton } from "@/components/features/like-button";
 
@@ -12,6 +23,14 @@ type CardSummary = {
   image_url: string | null;
   address: string | null;
   analysis: { shortcutMessage: string; mood: string };
+};
+
+type Profile = {
+  id: string;
+  email: string;
+  display_name: string;
+  username: string;
+  avatar_url: string;
 };
 
 type Tab = "my" | "liked";
@@ -23,18 +42,44 @@ export default function MyPage() {
   const [likedCards, setLikedCards] = useState<CardSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Profile state
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({
+    display_name: "",
+    username: "",
+    email: "",
+    password: "",
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     const fetchAll = async () => {
       setLoading(true);
       try {
-        const [myRes, likedRes] = await Promise.all([
+        const [myRes, likedRes, profileRes] = await Promise.all([
           fetch("/api/cards?mine=true"),
           fetch("/api/my/liked"),
+          fetch("/api/profile"),
         ]);
         const myData = await myRes.json();
         const likedData = await likedRes.json();
+        const profileData = await profileRes.json();
         setMyCards(myData.cards ?? []);
         setLikedCards(likedData.cards ?? []);
+        if (profileRes.ok) {
+          setProfile(profileData);
+          setForm({
+            display_name: profileData.display_name ?? "",
+            username: profileData.username ?? "",
+            email: profileData.email ?? "",
+            password: "",
+          });
+        }
       } catch {
         // ignore
       } finally {
@@ -43,6 +88,87 @@ export default function MyPage() {
     };
     fetchAll();
   }, []);
+
+  const handleSaveProfile = async () => {
+    setSaving(true);
+    setMessage(null);
+    try {
+      const body: Record<string, string> = {};
+      if (form.display_name !== profile?.display_name) body.display_name = form.display_name;
+      if (form.username !== profile?.username) body.username = form.username;
+      if (form.email !== profile?.email) body.email = form.email;
+      if (form.password) body.password = form.password;
+
+      if (Object.keys(body).length === 0) {
+        setEditing(false);
+        return;
+      }
+
+      const res = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMessage({ type: "error", text: data.error ?? "저장에 실패했습니다" });
+        return;
+      }
+
+      setProfile(data);
+      setForm((prev) => ({ ...prev, password: "" }));
+      setEditing(false);
+      setMessage({ type: "success", text: "프로필이 저장되었습니다" });
+      setTimeout(() => setMessage(null), 3000);
+    } catch {
+      setMessage({ type: "error", text: "저장에 실패했습니다" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingAvatar(true);
+    setMessage(null);
+    try {
+      const formData = new FormData();
+      formData.append("avatar", file);
+
+      const res = await fetch("/api/profile/avatar", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMessage({ type: "error", text: data.error ?? "업로드에 실패했습니다" });
+        return;
+      }
+
+      setProfile((prev) => (prev ? { ...prev, avatar_url: data.avatar_url } : prev));
+      setMessage({ type: "success", text: "프로필 사진이 변경되었습니다" });
+      setTimeout(() => setMessage(null), 3000);
+    } catch {
+      setMessage({ type: "error", text: "업로드에 실패했습니다" });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditing(false);
+    setForm({
+      display_name: profile?.display_name ?? "",
+      username: profile?.username ?? "",
+      email: profile?.email ?? "",
+      password: "",
+    });
+    setMessage(null);
+  };
 
   const cards = tab === "my" ? myCards : likedCards;
 
@@ -63,8 +189,178 @@ export default function MyPage() {
             <span className="font-semibold">마이페이지</span>
           </div>
         </div>
+      </header>
 
-        {/* 탭 */}
+      {/* 프로필 섹션 */}
+      <div className="mx-auto w-full max-w-2xl px-4 py-6">
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <div className="flex items-start gap-5">
+            {/* 아바타 */}
+            <div className="relative shrink-0">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="group relative h-20 w-20 overflow-hidden rounded-full border-2 border-border transition-colors hover:border-primary"
+              >
+                {profile?.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={profile.avatar_url}
+                    alt="프로필"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-violet-500 text-white text-2xl font-bold">
+                    {(profile?.display_name || profile?.email || "U")[0].toUpperCase()}
+                  </div>
+                )}
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                  {uploadingAvatar ? (
+                    <Loader2 className="h-5 w-5 animate-spin text-white" />
+                  ) : (
+                    <Camera className="h-5 w-5 text-white" />
+                  )}
+                </div>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+                className="hidden"
+              />
+            </div>
+
+            {/* 프로필 정보 */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold truncate">
+                  {profile?.display_name || profile?.email?.split("@")[0] || "사용자"}
+                </h2>
+                {!editing ? (
+                  <button
+                    onClick={() => setEditing(true)}
+                    className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    편집
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={cancelEdit}
+                      className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={handleSaveProfile}
+                      disabled={saving}
+                      className="flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+                    >
+                      {saving ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Check className="h-3.5 w-3.5" />
+                      )}
+                      저장
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {!editing ? (
+                <div className="space-y-1.5 text-sm text-muted-foreground">
+                  {profile?.username && (
+                    <p>@{profile.username}</p>
+                  )}
+                  <p>{profile?.email}</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                      닉네임
+                    </label>
+                    <input
+                      type="text"
+                      value={form.display_name}
+                      onChange={(e) => setForm((f) => ({ ...f, display_name: e.target.value }))}
+                      placeholder="닉네임을 입력하세요"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                      사용자 이름
+                    </label>
+                    <input
+                      type="text"
+                      value={form.username}
+                      onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
+                      placeholder="사용자 이름을 입력하세요"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                      이메일
+                    </label>
+                    <input
+                      type="email"
+                      value={form.email}
+                      onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                      placeholder="이메일을 입력하세요"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                      새 비밀번호
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={form.password}
+                        onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                        placeholder="변경할 비밀번호 (비워두면 유지)"
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2 pr-10 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 메시지 */}
+          {message && (
+            <motion.p
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`mt-3 text-xs font-medium ${
+                message.type === "success" ? "text-green-500" : "text-red-500"
+              }`}
+            >
+              {message.text}
+            </motion.p>
+          )}
+        </div>
+      </div>
+
+      {/* 탭 */}
+      <div className="sticky top-[57px] z-10 border-b border-border bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-2xl gap-0 px-4 pb-0">
           <button
             onClick={() => setTab("my")}
@@ -99,7 +395,7 @@ export default function MyPage() {
             )}
           </button>
         </div>
-      </header>
+      </div>
 
       <div className="mx-auto w-full max-w-2xl px-4 py-6">
         {loading ? (
