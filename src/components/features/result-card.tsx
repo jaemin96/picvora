@@ -11,8 +11,20 @@ import {
   Sparkles,
   Gift,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import type { PhotoAnalysis, NearbyPlace } from "@/types";
 import { TagBadge } from "./tag-badge";
+import { usePhotoStore } from "@/stores/photo-store";
+
+const KakaoMap = dynamic(
+  () => import("./kakao-map").then((m) => m.KakaoMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div style={{ width: "100%", height: 240, background: "var(--muted)" }} />
+    ),
+  }
+);
 
 const categoryIcon: Record<NearbyPlace["category"], React.ReactNode> = {
   restaurant: <Utensils className="h-4 w-4" />,
@@ -23,10 +35,7 @@ const categoryIcon: Record<NearbyPlace["category"], React.ReactNode> = {
 
 const container = {
   hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 },
-  },
+  show: { opacity: 1, transition: { staggerChildren: 0.1 } },
 };
 
 const item = {
@@ -35,6 +44,12 @@ const item = {
 };
 
 export function ResultCard({ analysis }: { analysis: PhotoAnalysis }) {
+  const { extractedExif, address } = usePhotoStore();
+  const hasGps =
+    extractedExif?.latitude != null && extractedExif?.longitude != null;
+  const displayAddress =
+    address ?? analysis.directions?.currentLocation ?? "현재 위치";
+
   return (
     <motion.div
       variants={container}
@@ -124,19 +139,38 @@ export function ResultCard({ analysis }: { analysis: PhotoAnalysis }) {
         </motion.div>
       )}
 
-      {/* 교통 정보 */}
-      {analysis.directions && (
+      {/* 카카오맵 + 오는 방법 */}
+      {(hasGps || analysis.directions?.howToGet) && (
         <motion.div
           variants={item}
-          className="flex items-start gap-3 rounded-2xl border border-border bg-card p-4"
+          className="rounded-2xl border border-border bg-card overflow-hidden"
         >
-          <Navigation className="h-4 w-4 mt-0.5 text-primary" />
-          <div>
-            <h3 className="text-sm font-semibold">교통 정보</h3>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              {analysis.directions}
+          {/* 주소 배너 */}
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+            <Navigation className="h-4 w-4 text-primary shrink-0" />
+            <p className="text-sm font-medium text-foreground truncate">
+              {displayAddress}
             </p>
           </div>
+
+          {/* 지도 */}
+          {hasGps && (
+            <KakaoMap
+              lat={extractedExif!.latitude!}
+              lng={extractedExif!.longitude!}
+              address={displayAddress}
+              jsKey={process.env.NEXT_PUBLIC_KAKAO_JS_KEY!}
+            />
+          )}
+
+          {/* 오는 방법 */}
+          {analysis.directions?.howToGet && (
+            <div className="px-4 py-3 border-t border-border">
+              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                {analysis.directions.howToGet}
+              </p>
+            </div>
+          )}
         </motion.div>
       )}
     </motion.div>

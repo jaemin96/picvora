@@ -1,18 +1,17 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { Upload, ImagePlus, X } from "lucide-react";
+import { Upload, ImagePlus, X, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { usePhotoStore } from "@/stores/photo-store";
 import { extractExifData } from "@/lib/exif";
-// dynamic import to avoid SSR "window is not defined" error
-const heic2any = typeof window !== "undefined" ? require("heic2any") : null;
 
 export function PhotoUpload() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isConverting, setIsConverting] = useState(false);
   const {
     uploadedPreview,
     extractedExif,
@@ -21,6 +20,7 @@ export function PhotoUpload() {
     setExtractedExif,
     setIsAnalyzing,
     setAnalysis,
+    setAddress,
     setError,
     reset,
   } = usePhotoStore();
@@ -37,6 +37,14 @@ export function PhotoUpload() {
 
       setError(null);
 
+      const isHeic =
+        file.type === "image/heic" ||
+        file.type === "image/heif" ||
+        isHeicByName;
+
+      // HEIC 변환 시 로딩 표시
+      if (isHeic) setIsConverting(true);
+
       // EXIF는 원본 파일에서 추출
       try {
         const exif = await extractExifData(file);
@@ -45,27 +53,27 @@ export function PhotoUpload() {
         setExtractedExif({});
       }
 
-      // HEIC/HEIF → JPEG 변환 (브라우저가 HEIC를 렌더링하지 못함)
-      const isHeic =
-        file.type === "image/heic" ||
-        file.type === "image/heif" ||
-        file.name.toLowerCase().endsWith(".heic") ||
-        file.name.toLowerCase().endsWith(".heif");
-
       let displayFile = file;
       if (isHeic) {
         try {
+          // 런타임에 동적 import (SSR 완전 회피)
+          const heic2any = (await import("heic2any")).default;
           const blob = (await heic2any({
             blob: file,
             toType: "image/jpeg",
             quality: 0.9,
           })) as Blob;
-          displayFile = new File([blob], file.name.replace(/\.heic$/i, ".jpg"), {
-            type: "image/jpeg",
-          });
+          displayFile = new File(
+            [blob],
+            file.name.replace(/\.(heic|heif)$/i, ".jpg"),
+            { type: "image/jpeg" }
+          );
         } catch {
           setError("HEIC 파일 변환에 실패했습니다.");
+          setIsConverting(false);
           return;
+        } finally {
+          setIsConverting(false);
         }
       }
 
@@ -112,7 +120,10 @@ export function PhotoUpload() {
 
       const data = await res.json();
       setAnalysis(data.analysis);
-      if (data.location) {
+      if (data.address) {
+        setAddress(data.address);
+      }
+      if (data.exif && Object.keys(data.exif).length > 0) {
         setExtractedExif({
           ...usePhotoStore.getState().extractedExif,
           ...data.exif,
@@ -126,6 +137,25 @@ export function PhotoUpload() {
       setIsAnalyzing(false);
     }
   };
+
+  // HEIC 변환 중 로딩 화면
+  if (isConverting) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="w-full max-w-lg"
+      >
+        <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-primary/40 bg-primary/5 p-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="text-center">
+            <p className="font-medium">HEIC 변환 중...</p>
+            <p className="mt-1 text-sm text-muted-foreground">잠시만 기다려주세요</p>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
 
   if (uploadedPreview) {
     return (
@@ -217,11 +247,7 @@ export function PhotoUpload() {
           size="lg"
         >
           {isAnalyzing ? (
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-              className="mr-2 h-4 w-4 rounded-full border-2 border-white/30 border-t-white"
-            />
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
             <ImagePlus className="mr-2 h-4 w-4" />
           )}

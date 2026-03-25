@@ -9,6 +9,7 @@ type PhotoState = {
   uploadedPreview: string | null;
   extractedExif: ExifData | null;
   analysis: PhotoAnalysis | null;
+  address: string | null;
   error: string | null;
 
   addPhoto: (photo: PhotoCard) => void;
@@ -18,6 +19,7 @@ type PhotoState = {
   setUploadedFile: (file: File | null, preview: string | null) => void;
   setExtractedExif: (exif: ExifData | null) => void;
   setAnalysis: (analysis: PhotoAnalysis | null) => void;
+  setAddress: (address: string | null) => void;
   setError: (error: string | null) => void;
   reset: () => void;
 };
@@ -30,6 +32,7 @@ export const usePhotoStore = create<PhotoState>((set) => ({
   uploadedPreview: null,
   extractedExif: null,
   analysis: null,
+  address: null,
   error: null,
 
   addPhoto: (photo) =>
@@ -42,6 +45,7 @@ export const usePhotoStore = create<PhotoState>((set) => ({
     set({ uploadedFile: file, uploadedPreview: preview }),
   setExtractedExif: (exif) => set({ extractedExif: exif }),
   setAnalysis: (analysis) => set({ analysis }),
+  setAddress: (address) => set({ address }),
   setError: (error) => set({ error }),
   reset: () =>
     set({
@@ -49,6 +53,7 @@ export const usePhotoStore = create<PhotoState>((set) => ({
       uploadedPreview: null,
       extractedExif: null,
       analysis: null,
+      address: null,
       error: null,
       isAnalyzing: false,
     }),

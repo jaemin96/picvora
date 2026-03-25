@@ -42,11 +42,14 @@ ${exifContext}
       "name": "장소명",
       "category": "restaurant|cafe|attraction|landmark",
       "description": "간단 설명",
-      "distance": "도보 N분"
+      "distance": "도보 N분 또는 차로 N분"
     }
   ],
   "specialties": ["이 지역/장소의 특산물이나 명물"],
-  "directions": "대중교통 접근성 한 줄 요약"
+  "directions": {
+    "currentLocation": "현재 위치의 정확한 이름 (예: 광양 배알도 수변공원, 광양읍 중심가 등 시/군/구 단위까지 포함)",
+    "howToGet": "이 장소에 오는 방법 - 대중교통(버스/기차 노선)과 자차 경로를 각각 한 줄씩"
+  }
 }
 
 태그 규칙:
@@ -56,8 +59,12 @@ ${exifContext}
 - subject: 주요 피사체 (예: 인물, 건축물, 음식)
 - specialty: 특별한 요소 (예: 벚꽃, 야경, 거리예술)
 
-GPS 정보가 있으면 해당 위치 기반으로 주변 정보를 제공하고, 없으면 사진 내용으로 추정하세요.
-nearbyPlaces는 최대 4개, tags는 5-8개로 제한하세요.`,
+nearbyPlaces 규칙 (매우 중요):
+- GPS 좌표가 있으면 반드시 해당 좌표로부터 실제 5km 이내의 장소만 추천하세요.
+- 예: 광양시 GPS라면 순천, 여수, 전주 같은 다른 도시는 절대 포함하지 마세요.
+- 같은 시/군 안에서, 또는 실제 도보/차로 15분 이내 거리 장소만 포함하세요.
+- GPS가 없으면 사진 내용에서 추정한 도시 내 가까운 장소로 제한하세요.
+- nearbyPlaces는 최대 4개, tags는 5-8개로 제한하세요.`,
           },
         ],
       },

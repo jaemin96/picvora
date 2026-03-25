@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
 import { analyzeImage } from "@/lib/claude";
+import { reverseGeocode } from "@/lib/kakao-geo";
 
 const MAX_BYTES = 5 * 1024 * 1024; // 5MB (Anthropic 제한)
 // base64 인코딩 시 ~1.37배 커지므로 원본 기준은 더 낮게 잡아야 함
@@ -51,10 +52,16 @@ async function compressImage(
 }
 
 // exifr는 브라우저용이므로 서버에서는 간단히 EXIF 컨텍스트 문자열만 구성
-function buildExifContext(exif: Record<string, string | undefined>): string {
+function buildExifContext(
+  exif: Record<string, string | undefined>,
+  address: string | null
+): string {
   const parts: string[] = [];
   if (exif.latitude && exif.longitude) {
     parts.push(`GPS 좌표: ${exif.latitude}, ${exif.longitude}`);
+  }
+  if (address) {
+    parts.push(`실제 주소 (역지오코딩): ${address}`);
   }
   if (exif.dateTime) {
     parts.push(`촬영 시간: ${exif.dateTime}`);
@@ -93,7 +100,13 @@ export async function POST(request: NextRequest) {
       ? JSON.parse(exifRaw)
       : {};
 
-    const exifContext = buildExifContext(exif);
+    // 카카오 역지오코딩으로 정확한 주소 먼저 확보
+    const lat = exif.latitude ? parseFloat(exif.latitude) : null;
+    const lng = exif.longitude ? parseFloat(exif.longitude) : null;
+    const address =
+      lat && lng ? await reverseGeocode(lat, lng) : null;
+
+    const exifContext = buildExifContext(exif, address);
 
     // Claude Vision으로 분석
     const analysis = await analyzeImage(base64, contentType, exifContext);
@@ -101,6 +114,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       analysis,
       exif,
+      address,
     });
   } catch (error) {
     console.error("Analyze API error:", error);
