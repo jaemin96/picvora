@@ -120,9 +120,7 @@ export function PhotoUpload() {
 
       const data = await res.json();
       setAnalysis(data.analysis);
-      if (data.address) {
-        setAddress(data.address);
-      }
+      if (data.address) setAddress(data.address);
       if (data.exif && Object.keys(data.exif).length > 0) {
         setExtractedExif({
           ...usePhotoStore.getState().extractedExif,

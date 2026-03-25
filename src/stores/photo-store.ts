@@ -10,6 +10,7 @@ type PhotoState = {
   extractedExif: ExifData | null;
   analysis: PhotoAnalysis | null;
   address: string | null;
+  shareId: string | null;
   error: string | null;
 
   addPhoto: (photo: PhotoCard) => void;
@@ -20,6 +21,7 @@ type PhotoState = {
   setExtractedExif: (exif: ExifData | null) => void;
   setAnalysis: (analysis: PhotoAnalysis | null) => void;
   setAddress: (address: string | null) => void;
+  setShareId: (shareId: string | null) => void;
   setError: (error: string | null) => void;
   reset: () => void;
 };
@@ -33,6 +35,7 @@ export const usePhotoStore = create<PhotoState>((set) => ({
   extractedExif: null,
   analysis: null,
   address: null,
+  shareId: null,
   error: null,
 
   addPhoto: (photo) =>
@@ -46,6 +49,7 @@ export const usePhotoStore = create<PhotoState>((set) => ({
   setExtractedExif: (exif) => set({ extractedExif: exif }),
   setAnalysis: (analysis) => set({ analysis }),
   setAddress: (address) => set({ address }),
+  setShareId: (shareId) => set({ shareId }),
   setError: (error) => set({ error }),
   reset: () =>
     set({
@@ -54,6 +58,7 @@ export const usePhotoStore = create<PhotoState>((set) => ({
       extractedExif: null,
       analysis: null,
       address: null,
+      shareId: null,
       error: null,
       isAnalyzing: false,
     }),
