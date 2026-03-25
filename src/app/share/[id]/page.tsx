@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { Camera } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/server";
 import { ShareView } from "@/components/features/share-view";
 
 export default async function SharePage({
@@ -8,6 +8,7 @@ export default async function SharePage({
 }: {
   params: { id: string };
 }) {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from("photo_cards")
     .select("*")

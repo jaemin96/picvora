@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
 import { analyzeImage } from "@/lib/claude";
 import { reverseGeocode } from "@/lib/kakao-geo";
+import { createClient } from "@/lib/supabase/server";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const MAX_RAW_BYTES = Math.floor(MAX_BYTES / 1.37);
@@ -60,6 +61,14 @@ function buildExifContext(
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const formData = await request.formData();
     const imageFile = formData.get("image") as File | null;
 

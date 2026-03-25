@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/server";
 import { nanoid } from "@/lib/nanoid";
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const formData = await request.formData();
 
     const analysisRaw = formData.get("analysis") as string | null;
@@ -23,7 +31,7 @@ export async function POST(request: NextRequest) {
 
     // 이미지 업로드
     if (imageFile) {
-      const fileName = `${shareId}.jpg`;
+      const fileName = `${user.id}/${shareId}.jpg`;
       const bytes = await imageFile.arrayBuffer();
       const buffer = Buffer.from(bytes);
 
@@ -46,6 +54,7 @@ export async function POST(request: NextRequest) {
       address,
       exif,
       analysis,
+      user_id: user.id,
     });
 
     if (dbError) {
