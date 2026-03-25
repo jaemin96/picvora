@@ -1,6 +1,6 @@
 "use client";
 
-import { Camera, Plus, ImageIcon, LogOut, User } from "lucide-react";
+import { Camera, Plus, ImageIcon, LogOut, User, Eye } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -16,6 +16,7 @@ type CardSummary = {
   image_url: string | null;
   address: string | null;
   analysis: { shortcutMessage: string; mood: string; tags: { label: string; type: string }[] };
+  view_count: number;
   created_at: string;
 };
 
@@ -38,7 +39,7 @@ export default function Home() {
         params.set("filters", JSON.stringify(selections));
       }
       const qs = params.toString();
-      const res = await fetch(`/api/cards${qs ? `?${qs}` : ""}`);
+      const res = await fetch(`/api/cards${qs ? `?${qs}` : ""}`, { cache: "no-store" });
       const data = await res.json();
       setCards(data.cards ?? []);
     } catch {
@@ -223,8 +224,12 @@ export default function Home() {
                         {card.analysis?.shortcutMessage}
                       </p>
                     </div>
-                    {/* 좋아요 버튼 */}
-                    <div className="absolute right-2 top-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                    {/* 조회수 + 좋아요 */}
+                    <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+                      <Eye className="h-3 w-3" />
+                      {card.view_count ?? 0}
+                    </div>
+                    <div className="absolute right-2 top-2">
                       <LikeButton cardId={card.share_id} size="sm" />
                     </div>
                   </div>

@@ -1,9 +1,12 @@
 import { notFound } from "next/navigation";
-import { ArrowLeft, Camera, Pencil } from "lucide-react";
+import { ArrowLeft, Camera, Pencil, Eye } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ShareView } from "@/components/features/share-view";
 import { LikeButton } from "@/components/features/like-button";
+import { formatCount } from "@/lib/format";
+
+export const dynamic = "force-dynamic";
 
 export default async function CardDetailPage({
   params,
@@ -22,6 +25,12 @@ export default async function CardDetailPage({
     .single();
 
   if (error || !data) notFound();
+
+  // 조회수 증가 (RPC로 atomic increment, RLS 우회)
+  const { data: rpcCount } = await supabase.rpc("increment_view_count", {
+    card_share_id: params.id,
+  });
+  const newCount = rpcCount ?? (data.view_count ?? 0) + 1;
 
   const isOwner = user?.id === data.user_id;
 
@@ -44,7 +53,11 @@ export default async function CardDetailPage({
               <span className="font-semibold">Picvora</span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Eye className="h-3.5 w-3.5" />
+              <span>{formatCount(newCount)}</span>
+            </div>
             <LikeButton cardId={params.id} size="lg" />
             {isOwner && (
               <Link

@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from("photo_cards")
-    .select("share_id, image_url, address, analysis, created_at, user_id")
+    .select("share_id, image_url, address, analysis, created_at, user_id, view_count")
     .order("created_at", { ascending: false })
     .limit(50);
 

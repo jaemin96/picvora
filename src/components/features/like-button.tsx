@@ -70,13 +70,13 @@ export function LikeButton({
   return (
     <button
       onClick={toggle}
-      className={`flex items-center gap-1 rounded-full px-2 py-1 text-xs transition-colors ${
+      className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium backdrop-blur-sm transition-colors ${
         liked
-          ? "text-rose-500"
-          : "text-white/80 hover:text-white"
+          ? "bg-rose-500/40 text-white"
+          : "bg-black/30 text-white hover:bg-black/50"
       }`}
     >
-      <Heart className={`h-3.5 w-3.5 ${liked ? "fill-rose-500" : ""}`} />
+      <Heart className={`h-3 w-3 ${liked ? "fill-white" : ""}`} />
       {count > 0 && <span>{count}</span>}
     </button>
   );
