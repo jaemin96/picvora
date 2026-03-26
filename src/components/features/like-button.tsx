@@ -55,14 +55,17 @@ export function LikeButton({
     return (
       <button
         onClick={toggle}
-        className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+        className={`flex items-center gap-1.5 rounded-full border p-2 sm:px-4 sm:py-2 text-sm font-medium transition-colors ${
           liked
             ? "border-rose-300 bg-rose-50 text-rose-500 dark:border-rose-800 dark:bg-rose-950/30"
             : "border-border bg-background text-muted-foreground hover:border-rose-300 hover:text-rose-500"
         }`}
       >
         <Heart className={`h-4 w-4 ${liked ? "fill-rose-500 text-rose-500" : ""}`} />
-        <span>{count > 0 ? count : "좋아요"}</span>
+        {count > 0
+          ? <span className="text-xs font-medium">{count}</span>
+          : <span className="hidden sm:inline">좋아요</span>
+        }
       </button>
     );
   }

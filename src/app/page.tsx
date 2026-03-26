@@ -1,6 +1,6 @@
 "use client";
 
-import { Camera, Plus, ImageIcon, LogOut, User, Eye } from "lucide-react";
+import { Camera, Plus, ImageIcon, LogOut, User, Eye, MessageCircle } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,6 +17,7 @@ type CardSummary = {
   address: string | null;
   analysis: { shortcutMessage: string; mood: string; tags: { label: string; type: string }[] };
   view_count: number;
+  comment_count: number;
   created_at: string;
 };
 
@@ -224,14 +225,22 @@ export default function Home() {
                         {card.analysis?.shortcutMessage}
                       </p>
                     </div>
-                    {/* 조회수 + 좋아요 */}
+                    {/* 조회수 */}
                     <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
                       <Eye className="h-3 w-3" />
                       {card.view_count ?? 0}
                     </div>
+                    {/* 좋아요 */}
                     <div className="absolute right-2 top-2">
                       <LikeButton cardId={card.share_id} size="sm" />
                     </div>
+                    {/* 댓글 수 (우하단) */}
+                    {(card.comment_count ?? 0) > 0 && (
+                      <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+                        <MessageCircle className="h-3 w-3" />
+                        {card.comment_count}
+                      </div>
+                    )}
                   </div>
                   {card.address && (
                     <p className="mt-1.5 truncate px-0.5 text-xs text-muted-foreground">

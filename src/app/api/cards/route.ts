@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from("photo_cards")
-    .select("share_id, image_url, address, analysis, created_at, user_id, view_count")
+    .select("share_id, image_url, address, analysis, created_at, user_id, view_count, comment_count:comments(count)")
     .order("created_at", { ascending: false })
     .limit(50);
 
@@ -49,5 +49,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ cards: data ?? [], userId: user.id });
+  // comment_count 집계값 정규화: [{count: n}] → n
+  const cards = (data ?? []).map((card) => {
+    const raw = card.comment_count;
+    const count = Array.isArray(raw) && raw.length > 0 ? (raw[0] as { count: number }).count : 0;
+    return { ...card, comment_count: count };
+  });
+
+  return NextResponse.json({ cards, userId: user.id });
 }
