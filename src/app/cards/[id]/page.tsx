@@ -31,6 +31,13 @@ export default async function CardDetailPage({
     .select("id", { count: "exact", head: true })
     .eq("card_id", params.id);
 
+  // 작성자 프로필
+  const { data: authorProfile } = await supabase
+    .from("profiles")
+    .select("display_name, avatar_url")
+    .eq("id", data.user_id)
+    .single();
+
   const isOwner = user?.id === data.user_id;
 
   return (
@@ -40,6 +47,7 @@ export default async function CardDetailPage({
       commentCount={commentCount ?? 0}
       isOwner={isOwner}
       currentUserId={user?.id ?? null}
+      authorProfile={authorProfile ?? null}
     />
   );
 }

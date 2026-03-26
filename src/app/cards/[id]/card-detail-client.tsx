@@ -20,18 +20,51 @@ type CardData = {
   view_count?: number;
 };
 
+type AuthorProfile = {
+  display_name: string | null;
+  avatar_url: string | null;
+};
+
+function AuthorBadge({ userId, profile }: { userId: string; profile: AuthorProfile | null }) {
+  const name = profile?.display_name ?? "알 수 없음";
+  return (
+    <Link
+      href={`/users/${userId}`}
+      className="flex items-center gap-2 group w-fit"
+    >
+      {profile?.avatar_url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={profile.avatar_url}
+          alt={name}
+          width={28}
+          height={28}
+          className="h-7 w-7 shrink-0 rounded-full object-cover"
+        />
+      ) : (
+        <div className="h-7 w-7 shrink-0 rounded-full bg-violet-500 flex items-center justify-center text-white text-xs font-bold">
+          {name[0]?.toUpperCase() ?? "?"}
+        </div>
+      )}
+      <span className="text-sm font-medium group-hover:underline">{name}</span>
+    </Link>
+  );
+}
+
 export function CardDetailClient({
   card,
   viewCount,
   commentCount,
   isOwner,
   currentUserId,
+  authorProfile,
 }: {
   card: CardData;
   viewCount: number;
   commentCount: number;
   isOwner: boolean;
   currentUserId: string | null;
+  authorProfile: AuthorProfile | null;
 }) {
   const [showComments, setShowComments] = useState(false);
   const [liveCommentCount, setLiveCommentCount] = useState(commentCount);
@@ -103,6 +136,10 @@ export function CardDetailClient({
 
       {/* 카드 본문 */}
       <div className="mx-auto w-full max-w-lg px-4 py-6">
+        {/* 작성자 */}
+        <div className="mb-4">
+          <AuthorBadge userId={card.user_id} profile={authorProfile} />
+        </div>
         <ShareView card={card} />
       </div>
 

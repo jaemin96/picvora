@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
+import Link from "next/link";
 
 type Profile = { display_name: string | null; avatar_url: string | null };
 
@@ -106,7 +107,12 @@ function CommentItem({
         <Avatar profile={comment.profiles} size={depth > 0 ? 22 : 28} />
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
-            <span className="text-xs font-semibold truncate">{authorName}</span>
+            <Link
+              href={`/users/${comment.user_id}`}
+              className="text-xs font-semibold truncate hover:underline"
+            >
+              {authorName}
+            </Link>
             {isOwner && (
               <span className="inline-flex rounded-full bg-primary/10 px-1.5 py-px text-[9px] font-bold text-primary leading-tight whitespace-nowrap">
                 작성자
