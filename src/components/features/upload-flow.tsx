@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { Upload, Loader2, X, ImagePlus, Check, Share2 } from "lucide-react";
+import { Upload, X, ImagePlus, Check, Share2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,23 @@ import { usePhotoStore } from "@/stores/photo-store";
 import { extractExifData } from "@/lib/exif";
 import { EditableResultCard } from "./editable-result-card";
 import type { PhotoAnalysis } from "@/types";
+
+function SkeletonBlock({
+  className,
+  style,
+}: {
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <motion.div
+      animate={{ opacity: [0.5, 1, 0.5] }}
+      transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+      className={`bg-muted ${className ?? ""}`}
+      style={style}
+    />
+  );
+}
 
 type Step = "upload" | "preview" | "analyzing" | "edit" | "publishing" | "done";
 
@@ -226,33 +243,79 @@ export function UploadFlow({
               className="flex flex-col items-center justify-center gap-4 p-8 min-h-[50vh]"
             >
               {isConverting ? (
-                <div className="flex flex-col items-center gap-4">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <p className="font-medium">HEIC 변환 중...</p>
-                </div>
+                <motion.div
+                  animate={{ opacity: [0.6, 1, 0.6] }}
+                  transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+                  className="flex items-center gap-2"
+                >
+                  <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                  <p className="text-sm font-medium text-muted-foreground">HEIC 변환 중...</p>
+                  <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                </motion.div>
               ) : (
                 <>
-                  <div
+                  <motion.div
                     onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                     onDragLeave={() => setIsDragging(false)}
                     onDrop={handleDrop}
                     onClick={() => inputRef.current?.click()}
-                    className={`w-full max-w-sm cursor-pointer flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed p-12 transition-all ${
-                      isDragging
-                        ? "border-primary bg-primary/5 scale-[1.02]"
-                        : "border-border hover:border-primary/50 hover:bg-muted/50"
-                    }`}
+                    animate={isDragging ? { scale: 1.03 } : { scale: 1 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    className="relative w-full max-w-sm cursor-pointer"
                   >
-                    <div className="rounded-full bg-primary/10 p-4">
-                      <Upload className="h-8 w-8 text-primary" />
+                    {/* 드래그 중 글로우 효과 */}
+                    <AnimatePresence>
+                      {isDragging && (
+                        <motion.div
+                          key="glow"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="absolute inset-0 rounded-3xl bg-primary/20 blur-xl pointer-events-none"
+                        />
+                      )}
+                    </AnimatePresence>
+
+                    <div
+                      className={`relative flex flex-col items-center justify-center gap-5 rounded-3xl border-2 p-12 transition-colors duration-200 ${
+                        isDragging
+                          ? "border-primary bg-primary/5"
+                          : "border-border bg-card hover:border-primary/40 hover:bg-muted/30"
+                      }`}
+                    >
+                      {/* 아이콘 */}
+                      <motion.div
+                        animate={isDragging ? { y: -4 } : { y: 0 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                        className={`rounded-2xl p-5 transition-colors ${
+                          isDragging ? "bg-primary/20" : "bg-muted"
+                        }`}
+                      >
+                        <Upload className={`h-8 w-8 transition-colors ${isDragging ? "text-primary" : "text-muted-foreground"}`} />
+                      </motion.div>
+
+                      <div className="text-center">
+                        <p className={`font-semibold transition-colors ${isDragging ? "text-primary" : "text-foreground"}`}>
+                          {isDragging ? "여기에 놓으세요" : "사진을 드래그하거나 클릭"}
+                        </p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          AI가 장소와 분위기를 분석해드려요
+                        </p>
+                      </div>
+
+                      {/* 파일 형식 칩 */}
+                      <div className="flex gap-2">
+                        {["JPG", "PNG", "HEIC"].map((fmt) => (
+                          <span
+                            key={fmt}
+                            className="rounded-full border border-border bg-muted/60 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground"
+                          >
+                            {fmt}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                    <div className="text-center">
-                      <p className="font-medium">
-                        {isDragging ? "여기에 놓으세요!" : "사진을 드래그하거나 클릭"}
-                      </p>
-                      <p className="mt-1 text-sm text-muted-foreground">JPG, PNG, HEIC 지원</p>
-                    </div>
-                  </div>
+                  </motion.div>
                   <input
                     ref={inputRef}
                     type="file"
@@ -332,19 +395,73 @@ export function UploadFlow({
             </motion.div>
           )}
 
-          {/* 분석 중 */}
+          {/* 분석 중 - 스켈레톤 */}
           {step === "analyzing" && (
             <motion.div
               key="analyzing"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col items-center justify-center gap-4 min-h-[50vh]"
+              className="flex flex-col items-center gap-4 p-4"
             >
-              <Loader2 className="h-10 w-10 animate-spin text-primary" />
-              <div className="text-center">
-                <p className="font-semibold">AI가 분석 중이에요</p>
-                <p className="mt-1 text-sm text-muted-foreground">장소와 분위기를 파악하고 있어요</p>
+              {/* 분석 중 헤더 */}
+              <motion.div
+                animate={{ opacity: [0.6, 1, 0.6] }}
+                transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+                className="flex items-center gap-2 py-1"
+              >
+                <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                <p className="text-sm font-medium text-muted-foreground">AI가 분석 중이에요</p>
+                <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+              </motion.div>
+
+              <div className="w-full max-w-lg space-y-4">
+                {/* 이미지 영역 스켈레톤 */}
+                <SkeletonBlock className="h-52 w-full rounded-2xl" />
+
+                {/* 감성 메시지 스켈레톤 */}
+                <div className="rounded-2xl border border-border bg-card p-6 space-y-3">
+                  <SkeletonBlock className="h-3 w-8 mx-auto rounded-full" />
+                  <SkeletonBlock className="h-5 w-3/4 mx-auto rounded-lg" />
+                  <SkeletonBlock className="h-3.5 w-1/2 mx-auto rounded-lg" />
+                </div>
+
+                {/* 태그 스켈레톤 */}
+                <div className="flex flex-wrap gap-2">
+                  {[80, 64, 72, 56, 88].map((w, i) => (
+                    <SkeletonBlock key={i} className={`h-7 rounded-full`} style={{ width: w }} />
+                  ))}
+                </div>
+
+                {/* 주변 정보 스켈레톤 */}
+                <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <SkeletonBlock className="h-4 w-4 rounded-md" />
+                    <SkeletonBlock className="h-4 w-20 rounded-lg" />
+                  </div>
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-center gap-3 rounded-xl bg-muted/40 p-3">
+                      <SkeletonBlock className="h-8 w-8 rounded-lg shrink-0" />
+                      <div className="flex-1 space-y-1.5">
+                        <SkeletonBlock className="h-3.5 w-28 rounded" />
+                        <SkeletonBlock className="h-3 w-40 rounded" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* 카카오맵 스켈레톤 */}
+                <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+                    <SkeletonBlock className="h-4 w-4 rounded-md" />
+                    <SkeletonBlock className="h-3.5 w-32 rounded" />
+                  </div>
+                  <SkeletonBlock className="h-48 w-full rounded-none" />
+                  <div className="px-4 py-3 border-t border-border space-y-1.5">
+                    <SkeletonBlock className="h-3 w-full rounded" />
+                    <SkeletonBlock className="h-3 w-4/5 rounded" />
+                  </div>
+                </div>
               </div>
             </motion.div>
           )}
@@ -397,10 +514,29 @@ export function UploadFlow({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col items-center justify-center gap-4 min-h-[50vh]"
+              className="flex flex-col items-center gap-4 p-4"
             >
-              <Loader2 className="h-10 w-10 animate-spin text-primary" />
-              <p className="font-semibold">게시 중...</p>
+              <motion.div
+                animate={{ opacity: [0.6, 1, 0.6] }}
+                transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+                className="flex items-center gap-2 py-1"
+              >
+                <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                <p className="text-sm font-medium text-muted-foreground">게시 중이에요</p>
+                <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+              </motion.div>
+              <div className="w-full max-w-lg space-y-4">
+                <SkeletonBlock className="h-52 w-full rounded-2xl" />
+                <div className="rounded-2xl border border-border bg-card p-6 space-y-3">
+                  <SkeletonBlock className="h-5 w-3/4 mx-auto rounded-lg" />
+                  <SkeletonBlock className="h-3.5 w-1/2 mx-auto rounded-lg" />
+                </div>
+                <div className="flex gap-2">
+                  {[80, 64, 72].map((w, i) => (
+                    <SkeletonBlock key={i} className="h-7 rounded-full" style={{ width: w }} />
+                  ))}
+                </div>
+              </div>
             </motion.div>
           )}
 
