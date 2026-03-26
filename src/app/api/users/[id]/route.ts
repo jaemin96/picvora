@@ -26,11 +26,12 @@ export async function GET(
     .eq("id", targetUserId)
     .single();
 
-  // 해당 유저의 photo_cards 조회
+  // 해당 유저의 photo_cards 조회 (삭제된 카드 제외)
   const { data: cards, error } = await supabase
     .from("photo_cards")
     .select("share_id, image_url, address, analysis, created_at, view_count, comment_count:comments(count)")
     .eq("user_id", targetUserId)
+    .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(50);
 

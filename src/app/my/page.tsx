@@ -14,6 +14,9 @@ import {
   Eye,
   EyeOff,
   Loader2,
+  Trash2,
+  RotateCcw,
+  AlertTriangle,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { LikeButton } from "@/components/features/like-button";
@@ -24,6 +27,7 @@ type CardSummary = {
   image_url: string | null;
   address: string | null;
   analysis: { shortcutMessage: string; mood: string };
+  deleted_at: string | null;
 };
 
 type Profile = {
@@ -64,7 +68,7 @@ export default function MyPage() {
       setLoading(true);
       try {
         const [myRes, likedRes, profileRes] = await Promise.all([
-          fetch("/api/cards?mine=true"),
+          fetch("/api/cards?mine=true&include_deleted=true"),
           fetch("/api/my/liked"),
           fetch("/api/profile"),
         ]);
@@ -185,7 +189,57 @@ export default function MyPage() {
     setMessage(null);
   };
 
+  const [cardActionLoading, setCardActionLoading] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  const handleSoftDelete = async (shareId: string) => {
+    setCardActionLoading(shareId);
+    try {
+      const res = await fetch(`/api/cards/${shareId}`, { method: "DELETE" });
+      if (res.ok) {
+        setMyCards((prev) =>
+          prev.map((c) => c.share_id === shareId ? { ...c, deleted_at: new Date().toISOString() } : c)
+        );
+      }
+    } finally {
+      setCardActionLoading(null);
+      setConfirmDelete(null);
+    }
+  };
+
+  const handleRestore = async (shareId: string) => {
+    setCardActionLoading(shareId);
+    try {
+      const res = await fetch(`/api/cards/${shareId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "restore" }),
+      });
+      if (res.ok) {
+        setMyCards((prev) =>
+          prev.map((c) => c.share_id === shareId ? { ...c, deleted_at: null } : c)
+        );
+      }
+    } finally {
+      setCardActionLoading(null);
+    }
+  };
+
+  const handlePermanentDelete = async (shareId: string) => {
+    setCardActionLoading(shareId);
+    try {
+      const res = await fetch(`/api/cards/${shareId}?permanent=true`, { method: "DELETE" });
+      if (res.ok) {
+        setMyCards((prev) => prev.filter((c) => c.share_id !== shareId));
+      }
+    } finally {
+      setCardActionLoading(null);
+      setConfirmDelete(null);
+    }
+  };
+
   const cards = tab === "my" ? myCards : likedCards;
+  const activeCards = tab === "my" ? myCards.filter((c) => !c.deleted_at) : likedCards;
 
   return (
     <>
@@ -395,9 +449,9 @@ export default function MyPage() {
           >
             <ImageIcon className="h-4 w-4" />
             내 사진
-            {myCards.length > 0 && (
+            {activeCards.length > 0 && (
               <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-xs text-primary">
-                {myCards.length}
+                {activeCards.length}
               </span>
             )}
           </button>
@@ -458,49 +512,137 @@ export default function MyPage() {
             animate={{ opacity: 1 }}
             className="grid grid-cols-2 gap-3 sm:grid-cols-3"
           >
-            {cards.map((card, i) => (
-              <motion.div
-                key={card.share_id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.04 }}
-              >
-                <Link href={`/cards/${card.share_id}`} className="group block">
-                  <div className="relative overflow-hidden rounded-2xl border border-border bg-muted aspect-square">
-                    {card.image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={card.image_url}
-                        alt={card.analysis?.shortcutMessage ?? "사진"}
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center">
-                        <ImageIcon className="h-8 w-8 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                    <div className="absolute bottom-0 left-0 right-0 p-2.5 translate-y-1 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-                      <p className="text-xs font-medium text-white line-clamp-2">
-                        {card.analysis?.shortcutMessage}
+            {cards.map((card, i) => {
+              const isSoftDeleted = tab === "my" && !!card.deleted_at;
+              const isLoading = cardActionLoading === card.share_id;
+
+              return (
+                <motion.div
+                  key={card.share_id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.04 }}
+                  className="relative"
+                >
+                  <Link href={`/cards/${card.share_id}`} className="group block">
+                    <div className={`relative overflow-hidden rounded-2xl border bg-muted aspect-square ${
+                      isSoftDeleted ? "border-amber-300 dark:border-amber-500/40" : "border-border"
+                    }`}>
+                      {card.image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={card.image_url}
+                          alt={card.analysis?.shortcutMessage ?? "사진"}
+                          className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 ${
+                            isSoftDeleted ? "grayscale opacity-50" : ""
+                          }`}
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center">
+                          <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                      )}
+                      {isSoftDeleted && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                          <div className="flex items-center gap-1.5 rounded-full bg-amber-500/90 px-3 py-1.5 text-xs font-medium text-white">
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                            삭제 대기
+                          </div>
+                        </div>
+                      )}
+                      {!isSoftDeleted && (
+                        <>
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                          <div className="absolute bottom-0 left-0 right-0 p-2.5 translate-y-1 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+                            <p className="text-xs font-medium text-white line-clamp-2">
+                              {card.analysis?.shortcutMessage}
+                            </p>
+                          </div>
+                          <div className="absolute right-2 top-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                            <LikeButton cardId={card.share_id} size="sm" />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </Link>
+                  {/* 삭제 대기 카드: 복구/완전삭제 버튼 */}
+                  {isSoftDeleted && (
+                    <div className="mt-2 flex gap-1.5">
+                      <button
+                        onClick={() => handleRestore(card.share_id)}
+                        disabled={isLoading}
+                        className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-border py-1.5 text-xs font-medium hover:bg-muted transition-colors disabled:opacity-50"
+                      >
+                        {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
+                        복구
+                      </button>
+                      <button
+                        onClick={() => setConfirmDelete(card.share_id)}
+                        disabled={isLoading}
+                        className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-red-500 py-1.5 text-xs font-medium text-white hover:bg-red-600 transition-colors disabled:opacity-50"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        완전삭제
+                      </button>
+                    </div>
+                  )}
+                  {/* 내 사진 탭: 삭제 안 된 카드에 삭제 버튼 */}
+                  {tab === "my" && !isSoftDeleted && (
+                    <div className="mt-1.5 flex items-center justify-between px-0.5">
+                      <p className="truncate text-xs text-muted-foreground flex-1">
+                        {card.address ?? ""}
                       </p>
+                      <button
+                        onClick={() => handleSoftDelete(card.share_id)}
+                        disabled={isLoading}
+                        className="shrink-0 rounded-md p-1 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                      >
+                        {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                      </button>
                     </div>
-                    <div className="absolute right-2 top-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                      <LikeButton cardId={card.share_id} size="sm" />
-                    </div>
-                  </div>
-                  {card.address && (
+                  )}
+                  {/* 좋아요 탭: 기존 주소 표시 유지 */}
+                  {tab === "liked" && card.address && (
                     <p className="mt-1.5 truncate px-0.5 text-xs text-muted-foreground">
                       {card.address}
                     </p>
                   )}
-                </Link>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </motion.div>
         )}
       </div>
     </main>
+
+    {/* 완전삭제 확인 모달 */}
+    {confirmDelete && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div className="mx-4 w-full max-w-sm rounded-2xl border border-border bg-background p-6 shadow-xl">
+          <h3 className="text-lg font-semibold">완전히 삭제할까요?</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            이 작업은 되돌릴 수 없습니다. 사진, 댓글, 좋아요가 모두 삭제됩니다.
+          </p>
+          <div className="mt-5 flex gap-2 justify-end">
+            <button
+              onClick={() => setConfirmDelete(null)}
+              disabled={!!cardActionLoading}
+              className="rounded-lg px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
+            >
+              취소
+            </button>
+            <button
+              onClick={() => handlePermanentDelete(confirmDelete)}
+              disabled={!!cardActionLoading}
+              className="flex items-center gap-1.5 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 transition-colors disabled:opacity-50"
+            >
+              {cardActionLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+              완전삭제
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </>
   );
 }

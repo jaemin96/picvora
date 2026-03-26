@@ -22,6 +22,10 @@ export default async function CardDetailPage({
 
   if (error || !data) notFound();
 
+  // 삭제된 카드는 본인만 접근 가능
+  const isDeleted = !!data.deleted_at;
+  if (isDeleted && user?.id !== data.user_id) notFound();
+
   // 조회수 — DB 현재값 그대로 표시, 실제 increment는 클라이언트가 /api/view 호출
   const newCount = data.view_count ?? 0;
 
@@ -46,6 +50,7 @@ export default async function CardDetailPage({
       viewCount={newCount}
       commentCount={commentCount ?? 0}
       isOwner={isOwner}
+      isDeleted={isDeleted}
       currentUserId={user?.id ?? null}
       authorProfile={authorProfile ?? null}
     />

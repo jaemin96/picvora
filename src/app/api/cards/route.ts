@@ -15,14 +15,21 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const includeDeleted = mine && request.nextUrl.searchParams.get("include_deleted") === "true";
+
   let query = supabase
     .from("photo_cards")
-    .select("share_id, image_url, address, analysis, created_at, user_id, view_count, comment_count:comments(count)")
+    .select("share_id, image_url, address, analysis, created_at, user_id, view_count, deleted_at, comment_count:comments(count)")
     .order("created_at", { ascending: false })
     .limit(50);
 
   if (mine) {
     query = query.eq("user_id", user.id);
+  }
+
+  // 마이페이지에서 include_deleted=true가 아니면 삭제된 카드 제외
+  if (!includeDeleted) {
+    query = query.is("deleted_at", null);
   }
 
   // 다중 지역 필터링

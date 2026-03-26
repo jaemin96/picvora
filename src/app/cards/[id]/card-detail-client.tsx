@@ -1,7 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowLeft, Camera, Pencil, Eye, MessageCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  Camera,
+  Pencil,
+  Trash2,
+  RotateCcw,
+  Eye,
+  MessageCircle,
+  Loader2,
+  AlertTriangle,
+} from "lucide-react";
 import Link from "next/link";
 import { ShareView } from "@/components/features/share-view";
 import { LikeButton } from "@/components/features/like-button";
@@ -56,6 +67,7 @@ export function CardDetailClient({
   viewCount,
   commentCount,
   isOwner,
+  isDeleted: initialIsDeleted,
   currentUserId,
   authorProfile,
 }: {
@@ -63,14 +75,20 @@ export function CardDetailClient({
   viewCount: number;
   commentCount: number;
   isOwner: boolean;
+  isDeleted: boolean;
   currentUserId: string | null;
   authorProfile: AuthorProfile | null;
 }) {
+  const router = useRouter();
   const [showComments, setShowComments] = useState(false);
   const [liveCommentCount, setLiveCommentCount] = useState(commentCount);
+  const [isDeleted, setIsDeleted] = useState(initialIsDeleted);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<"soft-delete" | "permanent" | null>(null);
 
-  // 최초 마운트 시 조회수 증가 (쿠키 없을 때만 Route Handler에서 처리)
+  // 최초 마운트 시 조회수 증가 (삭제된 카드는 제외)
   useEffect(() => {
+    if (isDeleted) return;
     fetch("/api/view", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -78,6 +96,47 @@ export function CardDetailClient({
     }).catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleSoftDelete = async () => {
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/cards/${card.share_id}`, { method: "DELETE" });
+      if (res.ok) {
+        setIsDeleted(true);
+        setConfirmAction(null);
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/cards/${card.share_id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "restore" }),
+      });
+      if (res.ok) {
+        setIsDeleted(false);
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handlePermanentDelete = async () => {
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/cards/${card.share_id}?permanent=true`, { method: "DELETE" });
+      if (res.ok) {
+        router.push("/my");
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   return (
     <main className="flex min-h-screen flex-col">
@@ -119,9 +178,9 @@ export function CardDetailClient({
               )}
             </button>
             {/* 좋아요 */}
-            <LikeButton cardId={card.share_id} size="lg" />
-            {/* 수정 (작성자) */}
-            {isOwner && (
+            {!isDeleted && <LikeButton cardId={card.share_id} size="lg" />}
+            {/* 수정 (작성자, 삭제되지 않은 경우) */}
+            {isOwner && !isDeleted && (
               <Link
                 href={`/cards/${card.share_id}/edit`}
                 className="flex items-center gap-1.5 rounded-full border border-border p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
@@ -130,12 +189,52 @@ export function CardDetailClient({
                 <span className="hidden sm:inline text-sm font-medium">수정</span>
               </Link>
             )}
+            {/* 삭제 (작성자, 삭제되지 않은 경우) */}
+            {isOwner && !isDeleted && (
+              <button
+                onClick={() => setConfirmAction("soft-delete")}
+                className="flex items-center gap-1.5 rounded-full border border-red-200 p-2 text-red-500 hover:bg-red-50 dark:border-red-500/30 dark:hover:bg-red-500/10 transition-colors"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span className="hidden sm:inline text-sm font-medium">삭제</span>
+              </button>
+            )}
           </div>
         </div>
       </header>
 
+      {/* 삭제 대기 배너 */}
+      {isDeleted && isOwner && (
+        <div className="border-b border-amber-200 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10">
+          <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-3">
+            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <p className="text-sm font-medium">삭제 대기 중인 게시글입니다</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleRestore}
+                disabled={actionLoading}
+                className="flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-foreground border border-border hover:bg-muted transition-colors disabled:opacity-50 dark:bg-background"
+              >
+                {actionLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+                복구
+              </button>
+              <button
+                onClick={() => setConfirmAction("permanent")}
+                disabled={actionLoading}
+                className="flex items-center gap-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-600 transition-colors disabled:opacity-50"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                완전삭제
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 카드 본문 */}
-      <div className="mx-auto w-full max-w-lg px-4 py-6">
+      <div className={`mx-auto w-full max-w-lg px-4 py-6 ${isDeleted ? "opacity-60" : ""}`}>
         {/* 작성자 */}
         <div className="mb-4">
           <AuthorBadge userId={card.user_id} profile={authorProfile} />
@@ -143,7 +242,7 @@ export function CardDetailClient({
         <ShareView card={card} />
       </div>
 
-      {/* 댓글 패널 (모바일: 하단 드로어 / 데스크탑: 우측 사이드) */}
+      {/* 댓글 패널 */}
       <CommentSection
         cardId={card.share_id}
         ownerId={card.user_id}
@@ -152,6 +251,39 @@ export function CardDetailClient({
         open={showComments}
         onClose={() => setShowComments(false)}
       />
+
+      {/* 확인 모달 */}
+      {confirmAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-sm rounded-2xl border border-border bg-background p-6 shadow-xl">
+            <h3 className="text-lg font-semibold">
+              {confirmAction === "soft-delete" ? "게시글을 삭제할까요?" : "완전히 삭제할까요?"}
+            </h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {confirmAction === "soft-delete"
+                ? "삭제 대기 상태로 변경됩니다. 마이페이지에서 복구하거나 완전히 삭제할 수 있어요."
+                : "이 작업은 되돌릴 수 없습니다. 사진, 댓글, 좋아요가 모두 삭제됩니다."}
+            </p>
+            <div className="mt-5 flex gap-2 justify-end">
+              <button
+                onClick={() => setConfirmAction(null)}
+                disabled={actionLoading}
+                className="rounded-lg px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={confirmAction === "soft-delete" ? handleSoftDelete : handlePermanentDelete}
+                disabled={actionLoading}
+                className="flex items-center gap-1.5 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 transition-colors disabled:opacity-50"
+              >
+                {actionLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                {confirmAction === "soft-delete" ? "삭제" : "완전삭제"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
