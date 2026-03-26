@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { LikeButton } from "@/components/features/like-button";
+import { ImageCropEditor } from "@/components/features/image-crop-editor";
 
 type CardSummary = {
   share_id: string;
@@ -55,6 +56,7 @@ export default function MyPage() {
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [cropPreviewUrl, setCropPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -128,15 +130,24 @@ export default function MyPage() {
     }
   };
 
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // 파일 선택 → 크롭 UI 열기
+  const handleAvatarFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // 같은 파일 재선택 가능하도록 초기화
+    e.target.value = "";
+    const url = URL.createObjectURL(file);
+    setCropPreviewUrl(url);
+  };
 
+  // 크롭 완료 → 서버 업로드
+  const handleCropApply = useCallback(async (blob: Blob) => {
+    setCropPreviewUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
     setUploadingAvatar(true);
     setMessage(null);
     try {
       const formData = new FormData();
-      formData.append("avatar", file);
+      formData.append("avatar", blob, "avatar.jpg");
 
       const res = await fetch("/api/profile/avatar", {
         method: "POST",
@@ -157,7 +168,11 @@ export default function MyPage() {
     } finally {
       setUploadingAvatar(false);
     }
-  };
+  }, []);
+
+  const handleCropCancel = useCallback(() => {
+    setCropPreviewUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
+  }, []);
 
   const cancelEdit = () => {
     setEditing(false);
@@ -173,6 +188,14 @@ export default function MyPage() {
   const cards = tab === "my" ? myCards : likedCards;
 
   return (
+    <>
+    {cropPreviewUrl && (
+      <ImageCropEditor
+        previewUrl={cropPreviewUrl}
+        onApply={handleCropApply}
+        onCancel={handleCropCancel}
+      />
+    )}
     <main className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-3">
@@ -226,7 +249,7 @@ export default function MyPage() {
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
-                onChange={handleAvatarUpload}
+                onChange={handleAvatarFileSelect}
                 className="hidden"
               />
             </div>
@@ -478,5 +501,6 @@ export default function MyPage() {
         )}
       </div>
     </main>
+    </>
   );
 }
