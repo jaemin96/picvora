@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { Upload, X, ImagePlus, Check, Share2 } from "lucide-react";
+import { Upload, X, ImagePlus, Check, Share2, Crop } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { usePhotoStore } from "@/stores/photo-store";
 import { extractExifData } from "@/lib/exif";
 import { EditableResultCard } from "./editable-result-card";
+import { ImageCropEditor } from "./image-crop-editor";
 import type { PhotoAnalysis } from "@/types";
 
 function SkeletonBlock({
@@ -43,6 +44,7 @@ export function UploadFlow({
   const [editedAnalysis, setEditedAnalysis] = useState<PhotoAnalysis | null>(null);
   const [shareId, setShareId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showCropEditor, setShowCropEditor] = useState(false);
 
   const {
     uploadedPreview,
@@ -120,6 +122,20 @@ export function UploadFlow({
       if (file) handleFile(file);
     },
     [handleFile]
+  );
+
+  const handleCropApply = useCallback(
+    (blob: Blob) => {
+      const editedFile = new File(
+        [blob],
+        usePhotoStore.getState().uploadedFile?.name ?? "edited.jpg",
+        { type: "image/jpeg" }
+      );
+      const preview = URL.createObjectURL(editedFile);
+      setUploadedFile(editedFile, preview);
+      setShowCropEditor(false);
+    },
+    [setUploadedFile]
   );
 
   const handleAnalyze = async () => {
@@ -386,8 +402,17 @@ export function UploadFlow({
                 </div>
               )}
 
-              <div className="w-full max-w-lg">
-                <Button onClick={handleAnalyze} className="w-full gap-2" size="lg">
+              <div className="w-full max-w-lg flex gap-3">
+                <Button
+                  onClick={() => setShowCropEditor(true)}
+                  variant="outline"
+                  className="gap-2"
+                  size="lg"
+                >
+                  <Crop className="h-4 w-4" />
+                  편집
+                </Button>
+                <Button onClick={handleAnalyze} className="flex-1 gap-2" size="lg">
                   <ImagePlus className="h-4 w-4" />
                   AI로 분석하기
                 </Button>
@@ -576,6 +601,15 @@ export function UploadFlow({
           )}
         </AnimatePresence>
       </div>
+      {/* 사진 편집 (crop/rotate) */}
+      {showCropEditor && uploadedPreview && (
+        <ImageCropEditor
+          previewUrl={uploadedPreview}
+          onApply={handleCropApply}
+          onCancel={() => setShowCropEditor(false)}
+          mode="photo"
+        />
+      )}
     </motion.div>
   );
 }

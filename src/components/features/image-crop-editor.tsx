@@ -15,12 +15,15 @@ type ImageCropEditorProps = {
   previewUrl: string;
   onApply: (blob: Blob) => void;
   onCancel: () => void;
+  /** "avatar" = 원형 1:1 512px, "photo" = 자유 비율 원본 해상도 */
+  mode?: "avatar" | "photo";
 };
 
 export function ImageCropEditor({
   previewUrl,
   onApply,
   onCancel,
+  mode = "avatar",
 }: ImageCropEditorProps) {
   const imgRef = useRef<HTMLImageElement>(null);
   const [crop, setCrop] = useState<Crop>();
@@ -28,16 +31,23 @@ export function ImageCropEditor({
   const [rotation, setRotation] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  const isPhoto = mode === "photo";
+
   const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     const { width, height } = e.currentTarget;
-    const size = Math.min(width, height);
-    const initialCrop = centerCrop(
-      makeAspectCrop({ unit: "px", width: size * 0.9 }, 1, width, height),
-      width,
-      height
-    );
-    setCrop(initialCrop);
-  }, []);
+    if (isPhoto) {
+      // photo 모드: 전체 영역 선택
+      setCrop({ unit: "px", x: 0, y: 0, width, height });
+    } else {
+      const size = Math.min(width, height);
+      const initialCrop = centerCrop(
+        makeAspectCrop({ unit: "px", width: size * 0.9 }, 1, width, height),
+        width,
+        height
+      );
+      setCrop(initialCrop);
+    }
+  }, [isPhoto]);
 
   const handleRotate = (dir: "cw" | "ccw") => {
     setRotation((prev) => (prev + (dir === "cw" ? 90 : -90) + 360) % 360);
@@ -58,6 +68,11 @@ export function ImageCropEditor({
         srcY = completedCrop.y * scaleY;
         srcW = completedCrop.width * scaleX;
         srcH = completedCrop.height * scaleY;
+      } else if (isPhoto) {
+        srcX = 0;
+        srcY = 0;
+        srcW = img.naturalWidth;
+        srcH = img.naturalHeight;
       } else {
         const size = Math.min(img.naturalWidth, img.naturalHeight);
         srcX = (img.naturalWidth - size) / 2;
@@ -66,17 +81,20 @@ export function ImageCropEditor({
         srcH = size;
       }
 
-      // 출력은 항상 정사각형 512px
-      const OUT = 512;
+      // avatar: 정사각형 512px, photo: 원본 해상도 유지
+      const outW = isPhoto ? srcW : 512;
+      const outH = isPhoto ? srcH : 512;
       const canvas = document.createElement("canvas");
-      canvas.width = OUT;
-      canvas.height = OUT;
+
+      const isRotated90 = rotation % 180 !== 0;
+      canvas.width = isRotated90 ? outH : outW;
+      canvas.height = isRotated90 ? outW : outH;
       const ctx = canvas.getContext("2d")!;
 
       const rad = (rotation * Math.PI) / 180;
-      ctx.translate(OUT / 2, OUT / 2);
+      ctx.translate(canvas.width / 2, canvas.height / 2);
       ctx.rotate(rad);
-      ctx.drawImage(img, srcX, srcY, srcW, srcH, -OUT / 2, -OUT / 2, OUT, OUT);
+      ctx.drawImage(img, srcX, srcY, srcW, srcH, -outW / 2, -outH / 2, outW, outH);
 
       await new Promise<void>((resolve, reject) => {
         canvas.toBlob(
@@ -98,7 +116,7 @@ export function ImageCropEditor({
     <div className="fixed inset-0 z-50 flex flex-col bg-background">
       {/* 헤더 */}
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <h2 className="font-semibold">프로필 사진 편집</h2>
+        <h2 className="font-semibold">{isPhoto ? "사진 편집" : "프로필 사진 편집"}</h2>
         <button
           onClick={onCancel}
           className="rounded-full p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
@@ -139,8 +157,7 @@ export function ImageCropEditor({
             crop={crop}
             onChange={(c) => setCrop(c)}
             onComplete={(c) => setCompletedCrop(c)}
-            aspect={1}
-            circularCrop
+            {...(isPhoto ? {} : { aspect: 1, circularCrop: true })}
             className="max-h-[55vh]"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -155,7 +172,7 @@ export function ImageCropEditor({
         </div>
 
         <p className="text-xs text-muted-foreground text-center">
-          원형 영역을 드래그해서 조정하세요
+          {isPhoto ? "영역을 드래그해서 자르거나 회전할 수 있어요" : "원형 영역을 드래그해서 조정하세요"}
         </p>
 
         {/* 버튼 */}
