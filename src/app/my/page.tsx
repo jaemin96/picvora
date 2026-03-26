@@ -21,6 +21,7 @@ import {
 import { motion } from "framer-motion";
 import { LikeButton } from "@/components/features/like-button";
 import { ImageCropEditor } from "@/components/features/image-crop-editor";
+import { FollowListModal } from "@/components/features/follow-list-modal";
 
 type CardSummary = {
   share_id: string;
@@ -61,6 +62,8 @@ export default function MyPage() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [cropPreviewUrl, setCropPreviewUrl] = useState<string | null>(null);
+  const [followCounts, setFollowCounts] = useState({ follower_count: 0, following_count: 0 });
+  const [followModal, setFollowModal] = useState<"followers" | "following" | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -85,6 +88,11 @@ export default function MyPage() {
             email: profileData.email ?? "",
             password: "",
           });
+          // 팔로워/팔로잉 카운트 가져오기
+          fetch(`/api/follows?userId=${profileData.id}`)
+            .then((r) => r.json())
+            .then((d) => setFollowCounts({ follower_count: d.follower_count ?? 0, following_count: d.following_count ?? 0 }))
+            .catch(() => {});
         }
       } catch {
         // ignore
@@ -347,11 +355,27 @@ export default function MyPage() {
               </div>
 
               {!editing ? (
-                <div className="space-y-1.5 text-sm text-muted-foreground">
+                <div className="space-y-2 text-sm text-muted-foreground">
                   {profile?.username && (
                     <p>@{profile.username}</p>
                   )}
                   <p>{profile?.email}</p>
+                  <div className="flex items-center gap-4 pt-1">
+                    <button
+                      onClick={() => setFollowModal("followers")}
+                      className="flex items-center gap-1 hover:text-foreground transition-colors"
+                    >
+                      <span className="font-semibold text-foreground">{followCounts.follower_count}</span>
+                      <span>팔로워</span>
+                    </button>
+                    <button
+                      onClick={() => setFollowModal("following")}
+                      className="flex items-center gap-1 hover:text-foreground transition-colors"
+                    >
+                      <span className="font-semibold text-foreground">{followCounts.following_count}</span>
+                      <span>팔로잉</span>
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -614,6 +638,21 @@ export default function MyPage() {
         )}
       </div>
     </main>
+
+    {/* 팔로워/팔로잉 모달 */}
+    {followModal && profile && (
+      <FollowListModal
+        userId={profile.id}
+        type={followModal}
+        onClose={() => setFollowModal(null)}
+        onFollowChange={(action) =>
+          setFollowCounts((prev) => ({
+            ...prev,
+            following_count: prev.following_count + (action === "followed" ? 1 : -1),
+          }))
+        }
+      />
+    )}
 
     {/* 완전삭제 확인 모달 */}
     {confirmDelete && (

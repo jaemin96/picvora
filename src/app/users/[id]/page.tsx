@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, ImageIcon, Eye, MessageCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { FollowButton } from "@/components/features/follow-button";
+import { FollowListModal } from "@/components/features/follow-list-modal";
 
 type CardSummary = {
   share_id: string;
@@ -55,6 +57,9 @@ export default function UserProfilePage() {
   const [cards, setCards] = useState<CardSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [followInfo, setFollowInfo] = useState({ follower_count: 0, following_count: 0, is_following: false });
+  const [followModal, setFollowModal] = useState<"followers" | "following" | null>(null);
+  const [isMe, setIsMe] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -70,6 +75,22 @@ export default function UserProfilePage() {
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
+
+    // 팔로우 정보 가져오기
+    fetch(`/api/follows?userId=${userId}`)
+      .then((r) => r.json())
+      .then((d) => setFollowInfo({
+        follower_count: d.follower_count ?? 0,
+        following_count: d.following_count ?? 0,
+        is_following: d.is_following ?? false,
+      }))
+      .catch(() => {});
+
+    // 본인 확인
+    fetch("/api/profile")
+      .then((r) => r.json())
+      .then((d) => { if (d.id === userId) setIsMe(true); })
+      .catch(() => {});
   }, [userId]);
 
   const displayName = profile?.display_name ?? "알 수 없는 사용자";
@@ -117,14 +138,43 @@ export default function UserProfilePage() {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-4 mb-8"
+            className="mb-8"
           >
-            <ProfileAvatar profile={profile ?? { display_name: null, avatar_url: null }} size={64} />
-            <div>
-              <p className="text-lg font-bold">{displayName}</p>
-              <p className="text-sm text-muted-foreground">
-                사진 {cards.length}장
-              </p>
+            <div className="flex items-center gap-4">
+              <ProfileAvatar profile={profile ?? { display_name: null, avatar_url: null }} size={64} />
+              <div className="flex-1">
+                <div className="flex items-center gap-3">
+                  <p className="text-lg font-bold">{displayName}</p>
+                  {!isMe && (
+                    <FollowButton
+                      targetUserId={userId}
+                      isFollowing={followInfo.is_following}
+                      onToggle={(followed) =>
+                        setFollowInfo((prev) => ({
+                          ...prev,
+                          is_following: followed,
+                          follower_count: prev.follower_count + (followed ? 1 : -1),
+                        }))
+                      }
+                    />
+                  )}
+                </div>
+                <div className="flex items-center gap-4 mt-1.5 text-sm text-muted-foreground">
+                  <span>사진 {cards.length}장</span>
+                  <button
+                    onClick={() => setFollowModal("followers")}
+                    className="hover:text-foreground transition-colors"
+                  >
+                    <span className="font-semibold text-foreground">{followInfo.follower_count}</span> 팔로워
+                  </button>
+                  <button
+                    onClick={() => setFollowModal("following")}
+                    className="hover:text-foreground transition-colors"
+                  >
+                    <span className="font-semibold text-foreground">{followInfo.following_count}</span> 팔로잉
+                  </button>
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
@@ -205,6 +255,21 @@ export default function UserProfilePage() {
           </motion.div>
         )}
       </div>
+
+      {/* 팔로워/팔로잉 모달 */}
+      {followModal && (
+        <FollowListModal
+          userId={userId}
+          type={followModal}
+          onClose={() => setFollowModal(null)}
+          onFollowChange={(action) =>
+            setFollowInfo((prev) => ({
+              ...prev,
+              following_count: prev.following_count + (action === "followed" ? 1 : -1),
+            }))
+          }
+        />
+      )}
     </main>
   );
 }
