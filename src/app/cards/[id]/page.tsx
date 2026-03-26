@@ -22,11 +22,8 @@ export default async function CardDetailPage({
 
   if (error || !data) notFound();
 
-  // 조회수 증가 (atomic)
-  const { data: rpcCount } = await supabase.rpc("increment_view_count", {
-    card_share_id: params.id,
-  });
-  const newCount = rpcCount ?? (data.view_count ?? 0) + 1;
+  // 조회수 — DB 현재값 그대로 표시, 실제 increment는 클라이언트가 /api/view 호출
+  const newCount = data.view_count ?? 0;
 
   // 댓글 수
   const { count: commentCount } = await supabase

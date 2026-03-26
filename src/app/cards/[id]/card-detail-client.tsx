@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, Camera, Pencil, Eye, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { ShareView } from "@/components/features/share-view";
@@ -35,6 +35,16 @@ export function CardDetailClient({
 }) {
   const [showComments, setShowComments] = useState(false);
   const [liveCommentCount, setLiveCommentCount] = useState(commentCount);
+
+  // 최초 마운트 시 조회수 증가 (쿠키 없을 때만 Route Handler에서 처리)
+  useEffect(() => {
+    fetch("/api/view", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cardId: card.share_id }),
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <main className="flex min-h-screen flex-col">

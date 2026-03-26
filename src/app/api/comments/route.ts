@@ -31,23 +31,21 @@ export async function GET(request: NextRequest) {
     .eq("card_id", cardId)
     .order("created_at", { ascending: true });
 
-  if (error) {
-    console.error("[GET /api/comments] error:", error);
-    return NextResponse.json({ error: error.message, details: error }, { status: 500 });
-  }
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const list = comments ?? [];
 
-  // 작성자 프로필 일괄 조회
+  // 작성자 프로필 일괄 조회 (display_name 없으면 email 앞부분 사용)
   const userIds = Array.from(new Set(list.map((c) => c.user_id)));
   let profileMap: Record<string, { display_name: string | null; avatar_url: string | null }> = {};
   if (userIds.length > 0) {
     const { data: profiles } = await supabase
       .from("profiles")
-      .select("id, display_name, avatar_url")
+      .select("id, display_name, avatar_url, email")
       .in("id", userIds);
     for (const p of profiles ?? []) {
-      profileMap[p.id] = { display_name: p.display_name, avatar_url: p.avatar_url };
+      const name = p.display_name || (p.email ? p.email.split("@")[0] : null);
+      profileMap[p.id] = { display_name: name, avatar_url: p.avatar_url };
     }
   }
 
@@ -99,20 +97,24 @@ export async function POST(request: NextRequest) {
     .select("id, card_id, user_id, parent_id, content, like_count, created_at")
     .single();
 
-  if (error) {
-    console.error("[POST /api/comments] error:", error);
-    return NextResponse.json({ error: error.message, details: error }, { status: 500 });
-  }
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   // 작성자 프로필
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name, avatar_url")
+    .select("display_name, avatar_url, email")
     .eq("id", user.id)
     .maybeSingle();
 
+  const profileData = profile
+    ? {
+        display_name: profile.display_name || (profile.email ? profile.email.split("@")[0] : null),
+        avatar_url: profile.avatar_url,
+      }
+    : null;
+
   return NextResponse.json({
-    comment: { ...data, profiles: profile ?? null, liked: false },
+    comment: { ...data, profiles: profileData, liked: false },
   });
 }
 

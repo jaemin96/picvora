@@ -61,6 +61,14 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
+  // profiles 테이블도 동기화 (trigger 없을 때 대비)
+  const profileUpdate: Record<string, string> = {};
+  if (body.display_name !== undefined) profileUpdate.display_name = body.display_name;
+  if (body.avatar_url !== undefined) profileUpdate.avatar_url = body.avatar_url;
+  if (Object.keys(profileUpdate).length > 0) {
+    await supabase.from("profiles").update(profileUpdate).eq("id", user.id);
+  }
+
   // Re-fetch updated user
   const { data: { user: updated } } = await supabase.auth.getUser();
 
