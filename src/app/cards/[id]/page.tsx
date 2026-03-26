@@ -26,6 +26,20 @@ export default async function CardDetailPage({
   const isDeleted = !!data.deleted_at;
   if (isDeleted && user?.id !== data.user_id) notFound();
 
+  // 공개범위 접근 제어
+  const visibility = data.visibility ?? "public";
+  const isOwnerCheck = user?.id === data.user_id;
+  if (!isOwnerCheck && visibility === "private") notFound();
+  if (!isOwnerCheck && visibility === "followers" && user) {
+    const { data: followRow } = await supabase
+      .from("follows")
+      .select("follower_id")
+      .eq("follower_id", user.id)
+      .eq("following_id", data.user_id)
+      .maybeSingle();
+    if (!followRow) notFound();
+  }
+
   // 조회수 — DB 현재값 그대로 표시, 실제 increment는 클라이언트가 /api/view 호출
   const newCount = data.view_count ?? 0;
 

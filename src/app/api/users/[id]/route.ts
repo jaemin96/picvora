@@ -26,14 +26,38 @@ export async function GET(
     .eq("id", targetUserId)
     .single();
 
-  // 해당 유저의 photo_cards 조회 (삭제된 카드 제외)
-  const { data: cards, error } = await supabase
+  const isMe = user.id === targetUserId;
+
+  // 팔로우 여부 확인
+  let isFollowing = false;
+  if (!isMe) {
+    const { data: followRow } = await supabase
+      .from("follows")
+      .select("follower_id")
+      .eq("follower_id", user.id)
+      .eq("following_id", targetUserId)
+      .maybeSingle();
+    isFollowing = !!followRow;
+  }
+
+  // 해당 유저의 photo_cards 조회 (삭제된 카드 제외 + 공개범위 필터)
+  let query = supabase
     .from("photo_cards")
-    .select("share_id, image_url, address, analysis, created_at, view_count, comment_count:comments(count)")
+    .select("share_id, image_url, address, analysis, created_at, view_count, visibility, comment_count:comments(count)")
     .eq("user_id", targetUserId)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(50);
+
+  if (!isMe) {
+    if (isFollowing) {
+      query = query.in("visibility", ["public", "followers"]);
+    } else {
+      query = query.eq("visibility", "public");
+    }
+  }
+
+  const { data: cards, error } = await query;
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

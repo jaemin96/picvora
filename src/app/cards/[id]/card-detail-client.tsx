@@ -12,13 +12,22 @@ import {
   MessageCircle,
   Loader2,
   AlertTriangle,
+  Globe,
+  Users,
+  Lock,
 } from "lucide-react";
 import Link from "next/link";
 import { ShareView } from "@/components/features/share-view";
 import { LikeButton } from "@/components/features/like-button";
 import { CommentSection } from "@/components/features/comment-section";
 import { formatCount } from "@/lib/format";
-import type { ExifData, PhotoAnalysis } from "@/types";
+import type { ExifData, PhotoAnalysis, Visibility } from "@/types";
+
+const VISIBILITY_META: Record<Visibility, { label: string; icon: typeof Globe }> = {
+  public: { label: "전체 공개", icon: Globe },
+  followers: { label: "팔로워 공개", icon: Users },
+  private: { label: "나만 보기", icon: Lock },
+};
 
 type CardData = {
   share_id: string;
@@ -27,6 +36,7 @@ type CardData = {
   address: string | null;
   exif: ExifData | null;
   analysis: PhotoAnalysis;
+  visibility?: Visibility;
   created_at: string;
   view_count?: number;
 };
@@ -85,6 +95,25 @@ export function CardDetailClient({
   const [isDeleted, setIsDeleted] = useState(initialIsDeleted);
   const [actionLoading, setActionLoading] = useState(false);
   const [confirmAction, setConfirmAction] = useState<"soft-delete" | "permanent" | null>(null);
+  const [currentVisibility, setCurrentVisibility] = useState<Visibility>(card.visibility ?? "public");
+  const [showVisibilityMenu, setShowVisibilityMenu] = useState(false);
+
+  const handleVisibilityChange = async (v: Visibility) => {
+    setShowVisibilityMenu(false);
+    if (v === currentVisibility) return;
+    const prev = currentVisibility;
+    setCurrentVisibility(v);
+    try {
+      const res = await fetch(`/api/cards/${card.share_id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visibility: v }),
+      });
+      if (!res.ok) setCurrentVisibility(prev);
+    } catch {
+      setCurrentVisibility(prev);
+    }
+  };
 
   // 최초 마운트 시 조회수 증가 (삭제된 카드는 제외)
   useEffect(() => {
@@ -235,9 +264,46 @@ export function CardDetailClient({
 
       {/* 카드 본문 */}
       <div className={`mx-auto w-full max-w-lg px-4 py-6 ${isDeleted ? "opacity-60" : ""}`}>
-        {/* 작성자 */}
-        <div className="mb-4">
+        {/* 작성자 + 공개범위 */}
+        <div className="mb-4 flex items-center justify-between">
           <AuthorBadge userId={card.user_id} profile={authorProfile} />
+          {isOwner ? (
+            <div className="relative">
+              <button
+                onClick={() => setShowVisibilityMenu((v) => !v)}
+                className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors"
+              >
+                {(() => { const m = VISIBILITY_META[currentVisibility]; const Icon = m.icon; return <><Icon className="h-3.5 w-3.5" />{m.label}</>; })()}
+              </button>
+              {showVisibilityMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowVisibilityMenu(false)} />
+                  <div className="absolute right-0 top-full z-50 mt-1 w-40 rounded-xl border border-border bg-background py-1 shadow-lg">
+                    {(["public", "followers", "private"] as Visibility[]).map((v) => {
+                      const m = VISIBILITY_META[v];
+                      const Icon = m.icon;
+                      return (
+                        <button
+                          key={v}
+                          onClick={() => handleVisibilityChange(v)}
+                          className={`flex w-full items-center gap-2 px-3 py-2 text-xs transition-colors hover:bg-muted ${
+                            currentVisibility === v ? "text-primary font-semibold" : "text-foreground"
+                          }`}
+                        >
+                          <Icon className="h-3.5 w-3.5" />
+                          {m.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+          ) : currentVisibility !== "public" ? (
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              {(() => { const m = VISIBILITY_META[currentVisibility]; const Icon = m.icon; return <><Icon className="h-3.5 w-3.5" />{m.label}</>; })()}
+            </span>
+          ) : null}
         </div>
         <ShareView card={card} />
       </div>

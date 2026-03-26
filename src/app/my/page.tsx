@@ -17,11 +17,22 @@ import {
   Trash2,
   RotateCcw,
   AlertTriangle,
+  Globe,
+  Users,
+  Lock,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { LikeButton } from "@/components/features/like-button";
 import { ImageCropEditor } from "@/components/features/image-crop-editor";
 import { FollowListModal } from "@/components/features/follow-list-modal";
+
+import type { Visibility } from "@/types";
+
+const VISIBILITY_ICON: Record<Visibility, typeof Globe> = {
+  public: Globe,
+  followers: Users,
+  private: Lock,
+};
 
 type CardSummary = {
   share_id: string;
@@ -29,6 +40,7 @@ type CardSummary = {
   address: string | null;
   analysis: { shortcutMessage: string; mood: string };
   deleted_at: string | null;
+  visibility?: Visibility;
 };
 
 type Profile = {
@@ -585,6 +597,16 @@ export default function MyPage() {
                           <div className="absolute right-2 top-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                             <LikeButton cardId={card.share_id} size="sm" />
                           </div>
+                          {/* 공개범위 배지 (전체 공개가 아닌 경우) */}
+                          {tab === "my" && card.visibility && card.visibility !== "public" && (() => {
+                            const Icon = VISIBILITY_ICON[card.visibility];
+                            return (
+                              <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/40 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+                                <Icon className="h-3 w-3" />
+                                {card.visibility === "followers" ? "팔로워" : "비공개"}
+                              </div>
+                            );
+                          })()}
                         </>
                       )}
                     </div>

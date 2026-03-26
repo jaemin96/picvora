@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { Upload, X, ImagePlus, Check, Share2, Crop } from "lucide-react";
+import { Upload, X, ImagePlus, Check, Share2, Crop, Globe, Users, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,13 @@ import { usePhotoStore } from "@/stores/photo-store";
 import { extractExifData } from "@/lib/exif";
 import { EditableResultCard } from "./editable-result-card";
 import { ImageCropEditor } from "./image-crop-editor";
-import type { PhotoAnalysis } from "@/types";
+import type { PhotoAnalysis, Visibility } from "@/types";
+
+const VISIBILITY_OPTIONS: { value: Visibility; label: string; icon: typeof Globe; desc: string }[] = [
+  { value: "public", label: "전체 공개", icon: Globe, desc: "누구나 볼 수 있어요" },
+  { value: "followers", label: "팔로워 공개", icon: Users, desc: "팔로워만 볼 수 있어요" },
+  { value: "private", label: "나만 보기", icon: Lock, desc: "나만 볼 수 있어요" },
+];
 
 function SkeletonBlock({
   className,
@@ -50,11 +56,13 @@ export function UploadFlow({
     uploadedPreview,
     extractedExif,
     address,
+    visibility,
     setUploadedFile,
     setExtractedExif,
     setIsAnalyzing,
     setAnalysis,
     setAddress,
+    setVisibility,
     setError,
     reset,
   } = usePhotoStore();
@@ -183,6 +191,7 @@ export function UploadFlow({
       const formData = new FormData();
       formData.append("image", file);
       formData.append("analysis", JSON.stringify(editedAnalysis));
+      formData.append("visibility", visibility);
       if (extractedExif) formData.append("exif", JSON.stringify(extractedExif));
       if (address) formData.append("address", address);
 
@@ -523,6 +532,32 @@ export function UploadFlow({
                 analysis={editedAnalysis}
                 onChange={setEditedAnalysis}
               />
+
+              {/* 공개범위 선택 */}
+              <div className="w-full max-w-lg">
+                <p className="mb-2 text-sm font-medium text-muted-foreground">공개범위</p>
+                <div className="flex gap-2">
+                  {VISIBILITY_OPTIONS.map((opt) => {
+                    const Icon = opt.icon;
+                    const selected = visibility === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        onClick={() => setVisibility(opt.value)}
+                        className={`flex flex-1 flex-col items-center gap-1.5 rounded-xl border-2 px-3 py-3 text-center transition-all ${
+                          selected
+                            ? "border-primary bg-primary/5 text-primary"
+                            : "border-border bg-card text-muted-foreground hover:border-primary/30"
+                        }`}
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span className="text-xs font-semibold">{opt.label}</span>
+                        <span className="text-[10px] leading-tight opacity-70">{opt.desc}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
               <div className="w-full max-w-lg pb-8">
                 <Button onClick={handlePublish} className="w-full gap-2" size="lg">

@@ -92,9 +92,24 @@ export async function PATCH(
     return NextResponse.json({ ok: true, action: "restored" });
   }
 
+  // 공개범위 변경
+  if (body.visibility) {
+    const validValues = ["public", "followers", "private"];
+    if (!validValues.includes(body.visibility)) {
+      return NextResponse.json({ error: "Invalid visibility" }, { status: 400 });
+    }
+    const { error } = await supabase
+      .from("photo_cards")
+      .update({ visibility: body.visibility })
+      .eq("share_id", params.id)
+      .eq("user_id", user.id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true, visibility: body.visibility });
+  }
+
   // 분석 수정 (기존)
   const { analysis } = body;
-  if (!analysis) return NextResponse.json({ error: "analysis required" }, { status: 400 });
+  if (!analysis) return NextResponse.json({ error: "analysis or visibility required" }, { status: 400 });
 
   const { error } = await supabase
     .from("photo_cards")

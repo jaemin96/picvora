@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from("photo_cards")
-    .select("share_id, image_url, address, analysis, created_at, user_id, view_count, deleted_at, comment_count:comments(count)")
+    .select("share_id, image_url, address, analysis, created_at, user_id, view_count, deleted_at, visibility, comment_count:comments(count)")
     .order("created_at", { ascending: false })
     .limit(50);
 
@@ -30,6 +30,26 @@ export async function GET(request: NextRequest) {
   // 마이페이지에서 include_deleted=true가 아니면 삭제된 카드 제외
   if (!includeDeleted) {
     query = query.is("deleted_at", null);
+  }
+
+  // 본인 카드가 아닌 경우 공개범위 필터링
+  if (!mine) {
+    // 나를 팔로우하는 사람이 아닌, 내가 팔로우하는 사람의 followers 공개 게시물도 볼 수 있어야 함
+    // public 카드 + 내가 팔로우하는 사용자의 followers 카드
+    const { data: followingRows } = await supabase
+      .from("follows")
+      .select("following_id")
+      .eq("follower_id", user.id);
+    const followingIds = (followingRows ?? []).map((r) => r.following_id);
+
+    // visibility 필터: public이거나, 본인 카드이거나, followers이면서 내가 팔로우 중인 사용자
+    if (followingIds.length > 0) {
+      query = query.or(
+        `visibility.eq.public,and(visibility.eq.followers,user_id.in.(${followingIds.join(",")})),user_id.eq.${user.id}`
+      );
+    } else {
+      query = query.or(`visibility.eq.public,user_id.eq.${user.id}`);
+    }
   }
 
   // 다중 지역 필터링

@@ -17,6 +17,8 @@ export async function POST(request: NextRequest) {
     const analysisRaw = formData.get("analysis") as string | null;
     const exifRaw = formData.get("exif") as string | null;
     const address = formData.get("address") as string | null;
+    const visibilityRaw = (formData.get("visibility") as string | null) ?? "public";
+    const visibility = ["public", "followers", "private"].includes(visibilityRaw) ? visibilityRaw : "public";
     const imageFile = formData.get("image") as File | null;
 
     if (!analysisRaw) {
@@ -54,6 +56,7 @@ export async function POST(request: NextRequest) {
       address,
       exif,
       analysis,
+      visibility,
       user_id: user.id,
     });
 

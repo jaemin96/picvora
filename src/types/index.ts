@@ -60,11 +60,14 @@ export type LocationResponse = {
   specialties: string[];
 };
 
+export type Visibility = "public" | "followers" | "private";
+
 export type PhotoCard = {
   id: string;
   imageUrl: string;
   exif: ExifData;
   location?: LocationInfo;
   analysis?: PhotoAnalysis;
+  visibility: Visibility;
   createdAt: string;
 };
