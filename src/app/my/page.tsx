@@ -26,6 +26,7 @@ import { LikeButton } from "@/components/features/like-button";
 import { ImageCropEditor } from "@/components/features/image-crop-editor";
 import { FollowListModal } from "@/components/features/follow-list-modal";
 import { LocationFilter, type LocationSelection } from "@/components/features/location-filter";
+import { useInfiniteCards } from "@/hooks/use-infinite-cards";
 
 import type { Visibility } from "@/types";
 
@@ -64,8 +65,6 @@ export default function MyPage() {
   const initialTab = (searchParams.get("tab") ?? "my") as Tab;
 
   const [tab, setTab] = useState<Tab>(initialTab);
-  const [myCards, setMyCards] = useState<CardSummary[]>([]);
-  const [likedCards, setLikedCards] = useState<CardSummary[]>([]);
   const [locationFilters, setLocationFilters] = useState<LocationSelection[]>(initialFilters);
   const [loading, setLoading] = useState(true);
 
@@ -87,37 +86,55 @@ export default function MyPage() {
   const [followModal, setFollowModal] = useState<"followers" | "following" | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchMyCards = useCallback(async (filters?: LocationSelection[]) => {
-    const params = new URLSearchParams({ mine: "true", include_deleted: "true" });
-    if (filters && filters.length > 0) {
-      params.set("filters", JSON.stringify(filters));
-    }
-    const res = await fetch(`/api/cards?${params.toString()}`);
-    const data = await res.json();
-    setMyCards(data.cards ?? []);
-  }, []);
+  const myCardsFetcher = useCallback(
+    async (cursor: string | null, limit: number) => {
+      const params = new URLSearchParams({ mine: "true", include_deleted: "true" });
+      if (locationFilters.length > 0) params.set("filters", JSON.stringify(locationFilters));
+      if (cursor) params.set("cursor", cursor);
+      params.set("limit", String(limit));
+      const res = await fetch(`/api/cards?${params.toString()}`);
+      const data = await res.json();
+      return { cards: (data.cards ?? []) as CardSummary[], nextCursor: data.nextCursor ?? null };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [locationFilters]
+  );
 
-  const fetchLikedCards = useCallback(async (filters?: LocationSelection[]) => {
-    const params = new URLSearchParams();
-    if (filters && filters.length > 0) {
-      params.set("filters", JSON.stringify(filters));
-    }
-    const qs = params.toString();
-    const res = await fetch(`/api/my/liked${qs ? `?${qs}` : ""}`);
-    const data = await res.json();
-    setLikedCards(data.cards ?? []);
-  }, []);
+  const likedCardsFetcher = useCallback(
+    async (cursor: string | null, limit: number) => {
+      const params = new URLSearchParams();
+      if (locationFilters.length > 0) params.set("filters", JSON.stringify(locationFilters));
+      if (cursor) params.set("cursor", cursor);
+      params.set("limit", String(limit));
+      const res = await fetch(`/api/my/liked?${params.toString()}`);
+      const data = await res.json();
+      return { cards: (data.cards ?? []) as CardSummary[], nextCursor: data.nextCursor ?? null };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [locationFilters]
+  );
+
+  const {
+    cards: myCards,
+    loading: myLoading,
+    loadingMore: myLoadingMore,
+    sentinelRef: mySentinelRef,
+    reset: resetMyCards,
+  } = useInfiniteCards<CardSummary>(myCardsFetcher, [locationFilters]);
+
+  const {
+    cards: likedCards,
+    loading: likedLoading,
+    loadingMore: likedLoadingMore,
+    sentinelRef: likedSentinelRef,
+  } = useInfiniteCards<CardSummary>(likedCardsFetcher, [locationFilters]);
 
   useEffect(() => {
-    const fetchAll = async () => {
+    const fetchProfile = async () => {
       setLoading(true);
       try {
-        const [profileRes] = await Promise.all([
-          fetch("/api/profile"),
-        ]);
-        await Promise.all([fetchMyCards(), fetchLikedCards()]);
+        const profileRes = await fetch("/api/profile");
         const profileData = await profileRes.json();
-        // likedData는 fetchLikedCards 내부에서 처리됨
         if (profileRes.ok) {
           setProfile(profileData);
           setForm({
@@ -126,7 +143,6 @@ export default function MyPage() {
             email: profileData.email ?? "",
             password: "",
           });
-          // 팔로워/팔로잉 카운트 가져오기
           fetch(`/api/follows?userId=${profileData.id}`)
             .then((r) => r.json())
             .then((d) => setFollowCounts({ follower_count: d.follower_count ?? 0, following_count: d.following_count ?? 0 }))
@@ -138,8 +154,8 @@ export default function MyPage() {
         setLoading(false);
       }
     };
-    fetchAll();
-  }, [fetchMyCards, fetchLikedCards]);
+    fetchProfile();
+  }, []);
 
   const updateUrl = (newTab: Tab, newFilters: LocationSelection[]) => {
     const params = new URLSearchParams();
@@ -152,11 +168,6 @@ export default function MyPage() {
   const handleLocationFilterChange = (selections: LocationSelection[]) => {
     setLocationFilters(selections);
     updateUrl(tab, selections);
-    if (tab === "my") {
-      fetchMyCards(selections);
-    } else {
-      fetchLikedCards(selections);
-    }
   };
 
   const handleSaveProfile = async () => {
@@ -260,11 +271,7 @@ export default function MyPage() {
     setCardActionLoading(shareId);
     try {
       const res = await fetch(`/api/cards/${shareId}`, { method: "DELETE" });
-      if (res.ok) {
-        setMyCards((prev) =>
-          prev.map((c) => c.share_id === shareId ? { ...c, deleted_at: new Date().toISOString() } : c)
-        );
-      }
+      if (res.ok) resetMyCards();
     } finally {
       setCardActionLoading(null);
       setConfirmDelete(null);
@@ -279,11 +286,7 @@ export default function MyPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "restore" }),
       });
-      if (res.ok) {
-        setMyCards((prev) =>
-          prev.map((c) => c.share_id === shareId ? { ...c, deleted_at: null } : c)
-        );
-      }
+      if (res.ok) resetMyCards();
     } finally {
       setCardActionLoading(null);
     }
@@ -293,9 +296,7 @@ export default function MyPage() {
     setCardActionLoading(shareId);
     try {
       const res = await fetch(`/api/cards/${shareId}?permanent=true`, { method: "DELETE" });
-      if (res.ok) {
-        setMyCards((prev) => prev.filter((c) => c.share_id !== shareId));
-      }
+      if (res.ok) resetMyCards();
     } finally {
       setCardActionLoading(null);
       setConfirmDelete(null);
@@ -304,6 +305,9 @@ export default function MyPage() {
 
   const cards = tab === "my" ? myCards : likedCards;
   const activeCards = tab === "my" ? myCards.filter((c) => !c.deleted_at) : likedCards;
+  const tabLoading = tab === "my" ? myLoading : likedLoading;
+  const tabLoadingMore = tab === "my" ? myLoadingMore : likedLoadingMore;
+  const tabSentinelRef = tab === "my" ? mySentinelRef : likedSentinelRef;
 
   return (
     <>
@@ -520,7 +524,7 @@ export default function MyPage() {
       <div className="sticky top-[57px] z-10 border-b border-border bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-2xl gap-0 px-4 pb-0">
           <button
-            onClick={() => { setTab("my"); updateUrl("my", locationFilters); fetchMyCards(locationFilters); }}
+            onClick={() => { setTab("my"); updateUrl("my", locationFilters); }}
             className={`flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
               tab === "my"
                 ? "border-primary text-primary"
@@ -536,7 +540,7 @@ export default function MyPage() {
             )}
           </button>
           <button
-            onClick={() => { setTab("liked"); updateUrl("liked", locationFilters); fetchLikedCards(locationFilters); }}
+            onClick={() => { setTab("liked"); updateUrl("liked", locationFilters); }}
             className={`flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
               tab === "liked"
                 ? "border-rose-500 text-rose-500"
@@ -558,7 +562,7 @@ export default function MyPage() {
         <div className="mb-4">
           <LocationFilter onFilterChange={handleLocationFilterChange} initialSelections={locationFilters} />
         </div>
-        {loading ? (
+        {tabLoading ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="aspect-square animate-pulse rounded-2xl bg-muted" />
@@ -704,6 +708,17 @@ export default function MyPage() {
               );
             })}
           </motion.div>
+        )}
+        {/* 무한 스크롤 sentinel */}
+        {!tabLoading && (
+          <>
+            <div ref={tabSentinelRef} className="h-1" />
+            {tabLoadingMore && (
+              <div className="flex justify-center py-6">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            )}
+          </>
         )}
       </div>
     </main>

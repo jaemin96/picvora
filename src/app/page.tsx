@@ -1,6 +1,6 @@
 "use client";
 
-import { Camera, Plus, ImageIcon, LogOut, User, Eye, MessageCircle } from "lucide-react";
+import { Camera, Plus, ImageIcon, LogOut, User, Eye, MessageCircle, Loader2 } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -11,6 +11,7 @@ import { LocationFilter, type LocationSelection } from "@/components/features/lo
 import { NotificationBell } from "@/components/features/notification-bell";
 import { SearchBar } from "@/components/features/search-bar";
 import { createClient } from "@/lib/supabase/client";
+import { useInfiniteCards } from "@/hooks/use-infinite-cards";
 import Link from "next/link";
 
 type CardSummary = {
@@ -26,8 +27,6 @@ type CardSummary = {
 export default function Home() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [cards, setCards] = useState<CardSummary[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
 
   const initialFilters = (() => {
@@ -43,31 +42,25 @@ export default function Home() {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const fetchCards = useCallback(async (selections?: LocationSelection[], feedTab?: "all" | "following") => {
-    try {
-      setLoading(true);
+  const fetcher = useCallback(
+    async (cursor: string | null, limit: number) => {
       const params = new URLSearchParams();
-      if (selections && selections.length > 0) {
-        params.set("filters", JSON.stringify(selections));
-      }
-      if (feedTab && feedTab !== "all") {
-        params.set("feed", feedTab);
-      }
-      const qs = params.toString();
-      const res = await fetch(`/api/cards${qs ? `?${qs}` : ""}`, { cache: "no-store" });
+      if (filters.length > 0) params.set("filters", JSON.stringify(filters));
+      if (feed !== "all") params.set("feed", feed);
+      if (cursor) params.set("cursor", cursor);
+      params.set("limit", String(limit));
+      const res = await fetch(`/api/cards?${params.toString()}`, { cache: "no-store" });
       const data = await res.json();
-      setCards(data.cards ?? []);
-    } catch {
-      // ignore
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      return { cards: (data.cards ?? []) as CardSummary[], nextCursor: data.nextCursor ?? null };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filters, feed]
+  );
 
-  useEffect(() => {
-    fetchCards(initialFilters.length > 0 ? initialFilters : undefined, initialFeed !== "all" ? initialFeed : undefined);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchCards]);
+  const { cards, loading, loadingMore, sentinelRef, reset } = useInfiniteCards<CardSummary>(
+    fetcher,
+    [filters, feed]
+  );
 
   // Fetch user profile for avatar
   useEffect(() => {
@@ -104,18 +97,16 @@ export default function Home() {
   const handleFilterChange = (selections: LocationSelection[]) => {
     setFilters(selections);
     updateUrl(selections, feed);
-    fetchCards(selections, feed);
   };
 
   const handleFeedChange = (newFeed: "all" | "following") => {
     setFeed(newFeed);
     updateUrl(filters, newFeed);
-    fetchCards(filters, newFeed);
   };
 
   const handlePublished = () => {
     setShowUpload(false);
-    fetchCards(filters, feed);
+    reset();
   };
 
   const handleLogout = async () => {
@@ -255,65 +246,74 @@ export default function Home() {
             )}
           </motion.div>
         ) : (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="grid grid-cols-2 gap-3 sm:grid-cols-3"
-          >
-            {cards.map((card, i) => (
-              <motion.div
-                key={card.share_id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.04 }}
-              >
-                <Link href={`/cards/${card.share_id}`} className="group block">
-                  <div className="relative overflow-hidden rounded-2xl border border-border bg-muted aspect-square">
-                    {card.image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={card.image_url}
-                        alt={card.analysis?.shortcutMessage ?? "사진"}
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center">
-                        <ImageIcon className="h-8 w-8 text-muted-foreground" />
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="grid grid-cols-2 gap-3 sm:grid-cols-3"
+            >
+              {cards.map((card, i) => (
+                <motion.div
+                  key={card.share_id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: Math.min(i * 0.04, 0.3) }}
+                >
+                  <Link href={`/cards/${card.share_id}`} className="group block">
+                    <div className="relative overflow-hidden rounded-2xl border border-border bg-muted aspect-square">
+                      {card.image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={card.image_url}
+                          alt={card.analysis?.shortcutMessage ?? "사진"}
+                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center">
+                          <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                      )}
+                      {/* 오버레이 */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                      <div className="absolute bottom-0 left-0 right-0 p-2.5 translate-y-1 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+                        <p className="text-xs font-medium text-white line-clamp-2">
+                          {card.analysis?.shortcutMessage}
+                        </p>
                       </div>
-                    )}
-                    {/* 오버레이 */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                    <div className="absolute bottom-0 left-0 right-0 p-2.5 translate-y-1 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-                      <p className="text-xs font-medium text-white line-clamp-2">
-                        {card.analysis?.shortcutMessage}
+                      {/* 조회수 */}
+                      <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+                        <Eye className="h-3 w-3" />
+                        {card.view_count ?? 0}
+                      </div>
+                      {/* 좋아요 */}
+                      <div className="absolute right-2 top-2">
+                        <LikeButton cardId={card.share_id} size="sm" />
+                      </div>
+                      {/* 댓글 수 (우하단) */}
+                      {(card.comment_count ?? 0) > 0 && (
+                        <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+                          <MessageCircle className="h-3 w-3" />
+                          {card.comment_count}
+                        </div>
+                      )}
+                    </div>
+                    {card.address && (
+                      <p className="mt-1.5 truncate px-0.5 text-xs text-muted-foreground">
+                        {card.address}
                       </p>
-                    </div>
-                    {/* 조회수 */}
-                    <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
-                      <Eye className="h-3 w-3" />
-                      {card.view_count ?? 0}
-                    </div>
-                    {/* 좋아요 */}
-                    <div className="absolute right-2 top-2">
-                      <LikeButton cardId={card.share_id} size="sm" />
-                    </div>
-                    {/* 댓글 수 (우하단) */}
-                    {(card.comment_count ?? 0) > 0 && (
-                      <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
-                        <MessageCircle className="h-3 w-3" />
-                        {card.comment_count}
-                      </div>
                     )}
-                  </div>
-                  {card.address && (
-                    <p className="mt-1.5 truncate px-0.5 text-xs text-muted-foreground">
-                      {card.address}
-                    </p>
-                  )}
-                </Link>
-              </motion.div>
-            ))}
-          </motion.div>
+                  </Link>
+                </motion.div>
+              ))}
+            </motion.div>
+            {/* 무한 스크롤 sentinel */}
+            <div ref={sentinelRef} className="h-1" />
+            {loadingMore && (
+              <div className="flex justify-center py-6">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            )}
+          </>
         )}
       </div>
 

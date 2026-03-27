@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, ImageIcon, Eye, MessageCircle } from "lucide-react";
+import { ArrowLeft, ImageIcon, Eye, MessageCircle, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { FollowButton } from "@/components/features/follow-button";
 import { FollowListModal } from "@/components/features/follow-list-modal";
+import { useInfiniteCards } from "@/hooks/use-infinite-cards";
 
 type CardSummary = {
   share_id: string;
@@ -54,15 +55,32 @@ export default function UserProfilePage() {
   const userId = params.id as string;
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [cards, setCards] = useState<CardSummary[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [followInfo, setFollowInfo] = useState({ follower_count: 0, following_count: 0, is_following: false });
   const [followModal, setFollowModal] = useState<"followers" | "following" | null>(null);
   const [isMe, setIsMe] = useState(false);
 
+  const fetcher = useCallback(
+    async (cursor: string | null, limit: number) => {
+      const params = new URLSearchParams();
+      if (cursor) params.set("cursor", cursor);
+      params.set("limit", String(limit));
+      const res = await fetch(`/api/users/${userId}?${params.toString()}`);
+      if (res.status === 404) { setNotFound(true); return { cards: [] as CardSummary[], nextCursor: null }; }
+      const data = await res.json();
+      if (!profile) setProfile(data.profile);
+      return { cards: (data.cards ?? []) as CardSummary[], nextCursor: data.nextCursor ?? null };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [userId]
+  );
+
+  const { cards, loading, loadingMore, sentinelRef } = useInfiniteCards<CardSummary>(fetcher, [userId]);
+
   useEffect(() => {
     if (!userId) return;
+    setProfileLoading(true);
     fetch(`/api/users/${userId}`)
       .then((res) => {
         if (res.status === 404) { setNotFound(true); return null; }
@@ -71,10 +89,9 @@ export default function UserProfilePage() {
       .then((data) => {
         if (!data) return;
         setProfile(data.profile);
-        setCards(data.cards ?? []);
       })
       .catch(() => setNotFound(true))
-      .finally(() => setLoading(false));
+      .finally(() => setProfileLoading(false));
 
     // 팔로우 정보 가져오기
     fetch(`/api/follows?userId=${userId}`)
@@ -126,7 +143,7 @@ export default function UserProfilePage() {
 
       <div className="mx-auto w-full max-w-2xl px-4 py-6">
         {/* 프로필 섹션 */}
-        {loading ? (
+        {profileLoading ? (
           <div className="flex items-center gap-4 mb-8">
             <div className="h-16 w-16 shrink-0 rounded-full bg-muted animate-pulse" />
             <div className="space-y-2">
@@ -253,6 +270,17 @@ export default function UserProfilePage() {
               </motion.div>
             ))}
           </motion.div>
+        )}
+        {/* 무한 스크롤 sentinel */}
+        {!loading && (
+          <>
+            <div ref={sentinelRef} className="h-1" />
+            {loadingMore && (
+              <div className="flex justify-center py-6">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            )}
+          </>
         )}
       </div>
 

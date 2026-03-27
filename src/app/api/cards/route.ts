@@ -7,6 +7,9 @@ export async function GET(request: NextRequest) {
   const mine = request.nextUrl.searchParams.get("mine") === "true";
   const feed = request.nextUrl.searchParams.get("feed") ?? "all"; // "all" | "following"
   const filtersParam = request.nextUrl.searchParams.get("filters"); // JSON: [{region, city?}]
+  const cursor = request.nextUrl.searchParams.get("cursor"); // created_at ISO string
+  const limitParam = request.nextUrl.searchParams.get("limit");
+  const limit = Math.min(Math.max(parseInt(limitParam ?? "18", 10) || 18, 1), 50);
 
   const supabase = createClient();
   const {
@@ -22,7 +25,11 @@ export async function GET(request: NextRequest) {
     .from("photo_cards")
     .select("share_id, image_url, address, analysis, created_at, user_id, view_count, deleted_at, visibility, comment_count:comments(count)")
     .order("created_at", { ascending: false })
-    .limit(50);
+    .limit(limit + 1); // +1 to check if there's a next page
+
+  if (cursor) {
+    query = query.lt("created_at", cursor);
+  }
 
   if (mine) {
     query = query.eq("user_id", user.id);
@@ -88,11 +95,17 @@ export async function GET(request: NextRequest) {
   }
 
   // comment_count 집계값 정규화: [{count: n}] → n
-  const cards = (data ?? []).map((card) => {
+  const allRows = data ?? [];
+  const hasNextPage = allRows.length > limit;
+  const pageRows = hasNextPage ? allRows.slice(0, limit) : allRows;
+
+  const cards = pageRows.map((card) => {
     const raw = card.comment_count;
     const count = Array.isArray(raw) && raw.length > 0 ? (raw[0] as { count: number }).count : 0;
     return { ...card, comment_count: count };
   });
 
-  return NextResponse.json({ cards, userId: user.id });
+  const nextCursor = hasNextPage ? pageRows[pageRows.length - 1].created_at : null;
+
+  return NextResponse.json({ cards, userId: user.id, nextCursor });
 }

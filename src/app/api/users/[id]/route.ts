@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const supabase = createClient();
@@ -18,6 +18,9 @@ export async function GET(
   }
 
   const targetUserId = params.id;
+  const cursor = req.nextUrl.searchParams.get("cursor");
+  const limitParam = req.nextUrl.searchParams.get("limit");
+  const limit = Math.min(Math.max(parseInt(limitParam ?? "18", 10) || 18, 1), 50);
 
   // profiles 테이블에서 display_name, avatar_url 조회
   const { data: profile } = await supabase
@@ -47,7 +50,11 @@ export async function GET(
     .eq("user_id", targetUserId)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
-    .limit(50);
+    .limit(limit + 1);
+
+  if (cursor) {
+    query = query.lt("created_at", cursor);
+  }
 
   if (!isMe) {
     if (isFollowing) {
@@ -64,11 +71,17 @@ export async function GET(
   }
 
   // comment_count 정규화
-  const normalizedCards = (cards ?? []).map((card) => {
+  const allRows = cards ?? [];
+  const hasNextPage = allRows.length > limit;
+  const pageRows = hasNextPage ? allRows.slice(0, limit) : allRows;
+
+  const normalizedCards = pageRows.map((card) => {
     const raw = card.comment_count;
     const count = Array.isArray(raw) && raw.length > 0 ? (raw[0] as { count: number }).count : 0;
     return { ...card, comment_count: count };
   });
+
+  const nextCursor = hasNextPage ? pageRows[pageRows.length - 1].created_at : null;
 
   return NextResponse.json({
     profile: {
@@ -76,5 +89,6 @@ export async function GET(
       avatar_url: profile?.avatar_url ?? null,
     },
     cards: normalizedCards,
+    nextCursor,
   });
 }
