@@ -29,18 +29,22 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
   const [filters, setFilters] = useState<LocationSelection[]>([]);
+  const [feed, setFeed] = useState<"all" | "following">("all");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string>("");
   const [userId, setUserId] = useState<string | null>(null);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const fetchCards = useCallback(async (selections?: LocationSelection[]) => {
+  const fetchCards = useCallback(async (selections?: LocationSelection[], feedTab?: "all" | "following") => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
       if (selections && selections.length > 0) {
         params.set("filters", JSON.stringify(selections));
+      }
+      if (feedTab && feedTab !== "all") {
+        params.set("feed", feedTab);
       }
       const qs = params.toString();
       const res = await fetch(`/api/cards${qs ? `?${qs}` : ""}`, { cache: "no-store" });
@@ -83,12 +87,17 @@ export default function Home() {
 
   const handleFilterChange = (selections: LocationSelection[]) => {
     setFilters(selections);
-    fetchCards(selections);
+    fetchCards(selections, feed);
+  };
+
+  const handleFeedChange = (newFeed: "all" | "following") => {
+    setFeed(newFeed);
+    fetchCards(filters, newFeed);
   };
 
   const handlePublished = () => {
     setShowUpload(false);
-    fetchCards(filters);
+    fetchCards(filters, feed);
   };
 
   const handleLogout = async () => {
@@ -100,7 +109,7 @@ export default function Home() {
   return (
     <main className="flex min-h-screen flex-col">
       {/* 헤더 */}
-      <header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur-sm">
+      <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2.5">
             <div className="rounded-lg bg-primary/10 p-1.5">
@@ -163,6 +172,25 @@ export default function Home() {
         </div>
       </header>
 
+      {/* 탭 바 */}
+      <div className="sticky top-[57px] z-10 border-b border-border bg-background/80 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-2xl px-4">
+          {(["all", "following"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => handleFeedChange(tab)}
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                feed === tab
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {tab === "all" ? "전체" : "팔로잉"}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* 필터 + 목록 */}
       <div className="mx-auto w-full max-w-2xl px-4 py-6">
         <div className="mb-4">
@@ -186,16 +214,27 @@ export default function Home() {
             <div className="rounded-full bg-muted p-5">
               <ImageIcon className="h-8 w-8 text-muted-foreground" />
             </div>
-            <div>
-              <p className="font-semibold">아직 사진이 없어요</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                첫 사진을 업로드해서 AI 분석을 받아보세요
-              </p>
-            </div>
-            <Button onClick={() => setShowUpload(true)} className="gap-2">
-              <Plus className="h-4 w-4" />
-              사진 업로드하기
-            </Button>
+            {feed === "following" ? (
+              <div>
+                <p className="font-semibold">팔로잉하는 사람이 없어요</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  다른 사용자를 팔로우해보세요
+                </p>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <p className="font-semibold">아직 사진이 없어요</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    첫 사진을 업로드해서 AI 분석을 받아보세요
+                  </p>
+                </div>
+                <Button onClick={() => setShowUpload(true)} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  사진 업로드하기
+                </Button>
+              </>
+            )}
           </motion.div>
         ) : (
           <motion.div

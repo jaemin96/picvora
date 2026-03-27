@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   const mine = request.nextUrl.searchParams.get("mine") === "true";
+  const feed = request.nextUrl.searchParams.get("feed") ?? "all"; // "all" | "following"
   const filtersParam = request.nextUrl.searchParams.get("filters"); // JSON: [{region, city?}]
 
   const supabase = createClient();
@@ -42,13 +43,23 @@ export async function GET(request: NextRequest) {
       .eq("follower_id", user.id);
     const followingIds = (followingRows ?? []).map((r) => r.following_id);
 
-    // visibility 필터: public이거나, 본인 카드이거나, followers이면서 내가 팔로우 중인 사용자
-    if (followingIds.length > 0) {
-      query = query.or(
-        `visibility.eq.public,and(visibility.eq.followers,user_id.in.(${followingIds.join(",")})),user_id.eq.${user.id}`
+    if (feed === "following") {
+      // 팔로잉 피드: 팔로잉한 사람들의 카드만
+      if (followingIds.length === 0) {
+        return NextResponse.json({ cards: [], userId: user.id, empty: "no_following" });
+      }
+      query = query.in("user_id", followingIds).or(
+        `visibility.eq.public,and(visibility.eq.followers,user_id.in.(${followingIds.join(",")}))`
       );
     } else {
-      query = query.or(`visibility.eq.public,user_id.eq.${user.id}`);
+      // visibility 필터: public이거나, 본인 카드이거나, followers이면서 내가 팔로우 중인 사용자
+      if (followingIds.length > 0) {
+        query = query.or(
+          `visibility.eq.public,and(visibility.eq.followers,user_id.in.(${followingIds.join(",")})),user_id.eq.${user.id}`
+        );
+      } else {
+        query = query.or(`visibility.eq.public,user_id.eq.${user.id}`);
+      }
     }
   }
 
