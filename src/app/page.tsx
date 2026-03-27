@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { UploadFlow } from "@/components/features/upload-flow";
 import { LikeButton } from "@/components/features/like-button";
 import { LocationFilter, type LocationSelection } from "@/components/features/location-filter";
+import { NotificationBell } from "@/components/features/notification-bell";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 
@@ -29,6 +30,7 @@ export default function Home() {
   const [filters, setFilters] = useState<LocationSelection[]>([]);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string>("");
+  const [userId, setUserId] = useState<string | null>(null);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -62,6 +64,7 @@ export default function Home() {
         if (data.avatar_url) setAvatarUrl(data.avatar_url);
         if (data.display_name) setDisplayName(data.display_name);
         else if (data.email) setDisplayName(data.email);
+        if (data.id) setUserId(data.id);
       })
       .catch(() => {});
   }, []);
@@ -112,6 +115,7 @@ export default function Home() {
               <Plus className="h-4 w-4" />
               새 사진
             </button>
+            {userId && <NotificationBell userId={userId} />}
             <div className="relative flex items-center" ref={menuRef}>
               <button
                 onClick={() => setShowMenu(!showMenu)}

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Camera,
@@ -90,6 +90,8 @@ export function CardDetailClient({
   authorProfile: AuthorProfile | null;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const didAutoOpen = useRef(false);
   const [showComments, setShowComments] = useState(false);
   const [liveCommentCount, setLiveCommentCount] = useState(commentCount);
   const [isDeleted, setIsDeleted] = useState(initialIsDeleted);
@@ -125,6 +127,15 @@ export function CardDetailClient({
     }).catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ?comments=1 파라미터가 있으면 댓글 창 자동 오픈
+  useEffect(() => {
+    if (didAutoOpen.current) return;
+    if (searchParams.get("comments") === "1") {
+      didAutoOpen.current = true;
+      setShowComments(true);
+    }
+  }, [searchParams]);
 
   const handleSoftDelete = async () => {
     setActionLoading(true);
