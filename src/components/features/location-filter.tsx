@@ -17,11 +17,12 @@ export type LocationSelection = {
 
 type Props = {
   onFilterChange: (selections: LocationSelection[]) => void;
+  initialSelections?: LocationSelection[];
 };
 
-export function LocationFilter({ onFilterChange }: Props) {
+export function LocationFilter({ onFilterChange, initialSelections }: Props) {
   const [regions, setRegions] = useState<Region[]>([]);
-  const [selections, setSelections] = useState<LocationSelection[]>([]);
+  const [selections, setSelections] = useState<LocationSelection[]>(initialSelections ?? []);
   const [expandedRegion, setExpandedRegion] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);

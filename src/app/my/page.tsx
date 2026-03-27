@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -25,6 +25,7 @@ import { motion } from "framer-motion";
 import { LikeButton } from "@/components/features/like-button";
 import { ImageCropEditor } from "@/components/features/image-crop-editor";
 import { FollowListModal } from "@/components/features/follow-list-modal";
+import { LocationFilter, type LocationSelection } from "@/components/features/location-filter";
 
 import type { Visibility } from "@/types";
 
@@ -55,9 +56,17 @@ type Tab = "my" | "liked";
 
 export default function MyPage() {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("my");
+  const searchParams = useSearchParams();
+
+  const initialFilters = (() => {
+    try { return JSON.parse(searchParams.get("filters") ?? "[]"); } catch { return []; }
+  })();
+  const initialTab = (searchParams.get("tab") ?? "my") as Tab;
+
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [myCards, setMyCards] = useState<CardSummary[]>([]);
   const [likedCards, setLikedCards] = useState<CardSummary[]>([]);
+  const [locationFilters, setLocationFilters] = useState<LocationSelection[]>(initialFilters);
   const [loading, setLoading] = useState(true);
 
   // Profile state
@@ -78,20 +87,37 @@ export default function MyPage() {
   const [followModal, setFollowModal] = useState<"followers" | "following" | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const fetchMyCards = useCallback(async (filters?: LocationSelection[]) => {
+    const params = new URLSearchParams({ mine: "true", include_deleted: "true" });
+    if (filters && filters.length > 0) {
+      params.set("filters", JSON.stringify(filters));
+    }
+    const res = await fetch(`/api/cards?${params.toString()}`);
+    const data = await res.json();
+    setMyCards(data.cards ?? []);
+  }, []);
+
+  const fetchLikedCards = useCallback(async (filters?: LocationSelection[]) => {
+    const params = new URLSearchParams();
+    if (filters && filters.length > 0) {
+      params.set("filters", JSON.stringify(filters));
+    }
+    const qs = params.toString();
+    const res = await fetch(`/api/my/liked${qs ? `?${qs}` : ""}`);
+    const data = await res.json();
+    setLikedCards(data.cards ?? []);
+  }, []);
+
   useEffect(() => {
     const fetchAll = async () => {
       setLoading(true);
       try {
-        const [myRes, likedRes, profileRes] = await Promise.all([
-          fetch("/api/cards?mine=true&include_deleted=true"),
-          fetch("/api/my/liked"),
+        const [profileRes] = await Promise.all([
           fetch("/api/profile"),
         ]);
-        const myData = await myRes.json();
-        const likedData = await likedRes.json();
+        await Promise.all([fetchMyCards(), fetchLikedCards()]);
         const profileData = await profileRes.json();
-        setMyCards(myData.cards ?? []);
-        setLikedCards(likedData.cards ?? []);
+        // likedData는 fetchLikedCards 내부에서 처리됨
         if (profileRes.ok) {
           setProfile(profileData);
           setForm({
@@ -113,7 +139,25 @@ export default function MyPage() {
       }
     };
     fetchAll();
-  }, []);
+  }, [fetchMyCards, fetchLikedCards]);
+
+  const updateUrl = (newTab: Tab, newFilters: LocationSelection[]) => {
+    const params = new URLSearchParams();
+    if (newTab !== "my") params.set("tab", newTab);
+    if (newFilters.length > 0) params.set("filters", JSON.stringify(newFilters));
+    const qs = params.toString();
+    router.replace(qs ? `/my?${qs}` : "/my", { scroll: false });
+  };
+
+  const handleLocationFilterChange = (selections: LocationSelection[]) => {
+    setLocationFilters(selections);
+    updateUrl(tab, selections);
+    if (tab === "my") {
+      fetchMyCards(selections);
+    } else {
+      fetchLikedCards(selections);
+    }
+  };
 
   const handleSaveProfile = async () => {
     setSaving(true);
@@ -476,7 +520,7 @@ export default function MyPage() {
       <div className="sticky top-[57px] z-10 border-b border-border bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-2xl gap-0 px-4 pb-0">
           <button
-            onClick={() => setTab("my")}
+            onClick={() => { setTab("my"); updateUrl("my", locationFilters); fetchMyCards(locationFilters); }}
             className={`flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
               tab === "my"
                 ? "border-primary text-primary"
@@ -492,7 +536,7 @@ export default function MyPage() {
             )}
           </button>
           <button
-            onClick={() => setTab("liked")}
+            onClick={() => { setTab("liked"); updateUrl("liked", locationFilters); fetchLikedCards(locationFilters); }}
             className={`flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
               tab === "liked"
                 ? "border-rose-500 text-rose-500"
@@ -511,6 +555,9 @@ export default function MyPage() {
       </div>
 
       <div className="mx-auto w-full max-w-2xl px-4 py-6">
+        <div className="mb-4">
+          <LocationFilter onFilterChange={handleLocationFilterChange} initialSelections={locationFilters} />
+        </div>
         {loading ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (

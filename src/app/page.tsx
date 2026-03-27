@@ -2,7 +2,7 @@
 
 import { Camera, Plus, ImageIcon, LogOut, User, Eye, MessageCircle } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { UploadFlow } from "@/components/features/upload-flow";
@@ -25,11 +25,18 @@ type CardSummary = {
 
 export default function Home() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [cards, setCards] = useState<CardSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
-  const [filters, setFilters] = useState<LocationSelection[]>([]);
-  const [feed, setFeed] = useState<"all" | "following">("all");
+
+  const initialFilters = (() => {
+    try { return JSON.parse(searchParams.get("filters") ?? "[]"); } catch { return []; }
+  })();
+  const initialFeed = (searchParams.get("feed") ?? "all") as "all" | "following";
+
+  const [filters, setFilters] = useState<LocationSelection[]>(initialFilters);
+  const [feed, setFeed] = useState<"all" | "following">(initialFeed);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string>("");
   const [userId, setUserId] = useState<string | null>(null);
@@ -58,7 +65,8 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    fetchCards();
+    fetchCards(initialFilters.length > 0 ? initialFilters : undefined, initialFeed !== "all" ? initialFeed : undefined);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchCards]);
 
   // Fetch user profile for avatar
@@ -85,13 +93,23 @@ export default function Home() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  const updateUrl = (newFilters: LocationSelection[], newFeed: "all" | "following") => {
+    const params = new URLSearchParams();
+    if (newFilters.length > 0) params.set("filters", JSON.stringify(newFilters));
+    if (newFeed !== "all") params.set("feed", newFeed);
+    const qs = params.toString();
+    router.replace(qs ? `/?${qs}` : "/", { scroll: false });
+  };
+
   const handleFilterChange = (selections: LocationSelection[]) => {
     setFilters(selections);
+    updateUrl(selections, feed);
     fetchCards(selections, feed);
   };
 
   const handleFeedChange = (newFeed: "all" | "following") => {
     setFeed(newFeed);
+    updateUrl(filters, newFeed);
     fetchCards(filters, newFeed);
   };
 
@@ -194,7 +212,7 @@ export default function Home() {
       {/* 필터 + 목록 */}
       <div className="mx-auto w-full max-w-2xl px-4 py-6">
         <div className="mb-4">
-          <LocationFilter onFilterChange={handleFilterChange} />
+          <LocationFilter onFilterChange={handleFilterChange} initialSelections={filters} />
         </div>
         {loading ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
