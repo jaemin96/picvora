@@ -22,7 +22,6 @@ import {
   Lock,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { LikeButton } from "@/components/features/like-button";
 import { ImageCropEditor } from "@/components/features/image-crop-editor";
 import { FollowListModal } from "@/components/features/follow-list-modal";
 import { LocationFilter, type LocationSelection } from "@/components/features/location-filter";
@@ -563,9 +562,9 @@ export default function MyPage() {
           <LocationFilter onFilterChange={handleLocationFilterChange} initialSelections={locationFilters} />
         </div>
         {tabLoading ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="aspect-square animate-pulse rounded-2xl bg-muted" />
+          <div className="grid grid-cols-3 gap-1.5">
+            {Array.from({ length: 9 }).map((_, i) => (
+              <div key={i} className="aspect-square animate-pulse rounded-xl bg-muted" />
             ))}
           </div>
         ) : cards.length === 0 ? (
@@ -597,7 +596,7 @@ export default function MyPage() {
             key={tab}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="grid grid-cols-2 gap-3 sm:grid-cols-3"
+            className="grid grid-cols-3 gap-1.5"
           >
             {cards.map((card, i) => {
               const isSoftDeleted = tab === "my" && !!card.deleted_at;
@@ -608,12 +607,12 @@ export default function MyPage() {
                   key={card.share_id}
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: i * 0.04 }}
+                  transition={{ delay: Math.min(i * 0.03, 0.3) }}
                   className="relative"
                 >
                   <Link href={`/cards/${card.share_id}`} className="group block">
-                    <div className={`relative overflow-hidden rounded-2xl border bg-muted aspect-square ${
-                      isSoftDeleted ? "border-amber-300 dark:border-amber-500/40" : "border-border"
+                    <div className={`relative overflow-hidden rounded-xl bg-muted aspect-square ${
+                      isSoftDeleted ? "ring-1 ring-amber-400 dark:ring-amber-500/60" : ""
                     }`}>
                       {card.image_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -621,54 +620,62 @@ export default function MyPage() {
                           src={card.image_url}
                           alt={card.analysis?.shortcutMessage ?? "사진"}
                           className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 ${
-                            isSoftDeleted ? "grayscale opacity-50" : ""
+                            isSoftDeleted ? "grayscale opacity-40" : ""
                           }`}
                         />
                       ) : (
                         <div className="flex h-full items-center justify-center">
-                          <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                          <ImageIcon className="h-6 w-6 text-muted-foreground" />
                         </div>
                       )}
+
+                      {/* 삭제 대기 오버레이 */}
                       {isSoftDeleted && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                          <div className="flex items-center gap-1.5 rounded-full bg-amber-500/90 px-3 py-1.5 text-xs font-medium text-white">
-                            <AlertTriangle className="h-3.5 w-3.5" />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="flex items-center gap-1 rounded-full bg-amber-500/90 px-2 py-1 text-[10px] font-medium text-white backdrop-blur-sm">
+                            <AlertTriangle className="h-3 w-3" />
                             삭제 대기
                           </div>
                         </div>
                       )}
+
+                      {/* 일반 카드 오버레이 */}
                       {!isSoftDeleted && (
                         <>
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                          <div className="absolute bottom-0 left-0 right-0 p-2.5 translate-y-1 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-                            <p className="text-xs font-medium text-white line-clamp-2">
-                              {card.analysis?.shortcutMessage}
-                            </p>
-                          </div>
-                          <div className="absolute right-2 top-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                            <LikeButton cardId={card.share_id} size="sm" />
-                          </div>
-                          {/* 공개범위 배지 (전체 공개가 아닌 경우) */}
+                          {/* 공개범위 배지 */}
                           {tab === "my" && card.visibility && card.visibility !== "public" && (() => {
                             const Icon = VISIBILITY_ICON[card.visibility];
                             return (
-                              <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/40 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
-                                <Icon className="h-3 w-3" />
+                              <div className="absolute left-1.5 top-1.5 flex items-center gap-0.5 rounded-full bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+                                <Icon className="h-2.5 w-2.5" />
                                 {card.visibility === "followers" ? "팔로워" : "비공개"}
                               </div>
                             );
                           })()}
+                          {/* 호버 그라디언트 */}
+                          <div className="absolute inset-0 bg-black/30 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+                          {/* 호버 시 삭제 버튼 (내 사진 탭) */}
+                          {tab === "my" && (
+                            <button
+                              onClick={(e) => { e.preventDefault(); handleSoftDelete(card.share_id); }}
+                              disabled={isLoading}
+                              className="absolute right-1.5 top-1.5 rounded-full bg-black/50 p-1.5 text-white opacity-0 backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100 hover:bg-red-500/80 disabled:opacity-50"
+                            >
+                              {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                            </button>
+                          )}
                         </>
                       )}
                     </div>
                   </Link>
+
                   {/* 삭제 대기 카드: 복구/완전삭제 버튼 */}
                   {isSoftDeleted && (
-                    <div className="mt-2 flex gap-1.5">
+                    <div className="mt-1.5 flex gap-1">
                       <button
                         onClick={() => handleRestore(card.share_id)}
                         disabled={isLoading}
-                        className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-border py-1.5 text-xs font-medium hover:bg-muted transition-colors disabled:opacity-50"
+                        className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-border py-1.5 text-[11px] font-medium hover:bg-muted transition-colors disabled:opacity-50"
                       >
                         {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
                         복구
@@ -676,33 +683,12 @@ export default function MyPage() {
                       <button
                         onClick={() => setConfirmDelete(card.share_id)}
                         disabled={isLoading}
-                        className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-red-500 py-1.5 text-xs font-medium text-white hover:bg-red-600 transition-colors disabled:opacity-50"
+                        className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-red-500 py-1.5 text-[11px] font-medium text-white hover:bg-red-600 transition-colors disabled:opacity-50"
                       >
                         <Trash2 className="h-3 w-3" />
-                        완전삭제
+                        삭제
                       </button>
                     </div>
-                  )}
-                  {/* 내 사진 탭: 삭제 안 된 카드에 삭제 버튼 */}
-                  {tab === "my" && !isSoftDeleted && (
-                    <div className="mt-1.5 flex items-center justify-between px-0.5">
-                      <p className="truncate text-xs text-muted-foreground flex-1">
-                        {card.address ?? ""}
-                      </p>
-                      <button
-                        onClick={() => handleSoftDelete(card.share_id)}
-                        disabled={isLoading}
-                        className="shrink-0 rounded-md p-1 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors disabled:opacity-50"
-                      >
-                        {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                      </button>
-                    </div>
-                  )}
-                  {/* 좋아요 탭: 기존 주소 표시 유지 */}
-                  {tab === "liked" && card.address && (
-                    <p className="mt-1.5 truncate px-0.5 text-xs text-muted-foreground">
-                      {card.address}
-                    </p>
                   )}
                 </motion.div>
               );
