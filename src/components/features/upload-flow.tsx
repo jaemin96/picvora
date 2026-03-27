@@ -10,6 +10,9 @@ import { extractExifData } from "@/lib/exif";
 import { EditableResultCard } from "./editable-result-card";
 import { ImageCropEditor } from "./image-crop-editor";
 import type { PhotoAnalysis, Visibility } from "@/types";
+import { CLAUDE_MODELS, DEFAULT_MODEL, type ClaudeModelId } from "@/lib/claude-models";
+
+const IS_DEV = process.env.NODE_ENV === "development";
 
 const VISIBILITY_OPTIONS: { value: Visibility; label: string; icon: typeof Globe; desc: string }[] = [
   { value: "public", label: "전체 공개", icon: Globe, desc: "누구나 볼 수 있어요" },
@@ -46,6 +49,7 @@ export function UploadFlow({
   const inputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<Step>("upload");
   const [isDragging, setIsDragging] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<ClaudeModelId>(DEFAULT_MODEL);
   const [isConverting, setIsConverting] = useState(false);
   const [editedAnalysis, setEditedAnalysis] = useState<PhotoAnalysis | null>(null);
   const [shareId, setShareId] = useState<string | null>(null);
@@ -159,6 +163,7 @@ export function UploadFlow({
       formData.append("image", file);
       const currentExif = usePhotoStore.getState().extractedExif;
       if (currentExif) formData.append("exif", JSON.stringify(currentExif));
+      formData.append("model", selectedModel);
 
       const res = await fetch("/api/analyze", { method: "POST", body: formData });
       if (!res.ok) throw new Error("분석에 실패했습니다.");
@@ -407,6 +412,29 @@ export function UploadFlow({
                         {extractedExif.latitude.toFixed(4)}, {extractedExif.longitude?.toFixed(4)}
                       </div>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {IS_DEV && (
+                <div className="w-full max-w-lg rounded-xl border border-dashed border-amber-400/60 bg-amber-50/10 p-3">
+                  <p className="mb-2 text-xs font-medium text-amber-500">🛠 DEV — AI 모델 선택</p>
+                  <div className="flex flex-col gap-1.5">
+                    {(Object.entries(CLAUDE_MODELS) as [ClaudeModelId, string][]).map(([id, label]) => (
+                      <label key={id} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="claude-model"
+                          value={id}
+                          checked={selectedModel === id}
+                          onChange={() => setSelectedModel(id)}
+                          className="accent-amber-500"
+                        />
+                        <span className={`text-sm ${selectedModel === id ? "font-semibold text-amber-600" : "text-muted-foreground"}`}>
+                          {label}
+                        </span>
+                      </label>
+                    ))}
                   </div>
                 </div>
               )}

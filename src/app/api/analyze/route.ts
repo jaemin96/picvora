@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
 import { analyzeImage } from "@/lib/claude";
+import { DEFAULT_MODEL, CLAUDE_MODELS, type ClaudeModelId } from "@/lib/claude-models";
 import { reverseGeocode } from "@/lib/kakao-geo";
 import { createClient } from "@/lib/supabase/server";
 
@@ -87,8 +88,14 @@ export async function POST(request: NextRequest) {
     const lng = exif.longitude ? parseFloat(exif.longitude) : null;
     const address = lat && lng ? await reverseGeocode(lat, lng) : null;
 
+    const modelParam = formData.get("model") as string | null;
+    const model: ClaudeModelId =
+      modelParam && modelParam in CLAUDE_MODELS
+        ? (modelParam as ClaudeModelId)
+        : DEFAULT_MODEL;
+
     const exifContext = buildExifContext(exif, address);
-    const analysis = await analyzeImage(base64, contentType, exifContext);
+    const analysis = await analyzeImage(base64, contentType, exifContext, model);
 
     return NextResponse.json({ analysis, exif, address });
   } catch (error) {

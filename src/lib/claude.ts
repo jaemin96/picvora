@@ -1,4 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { type ClaudeModelId, DEFAULT_MODEL } from "./claude-models";
+
+export { CLAUDE_MODELS, DEFAULT_MODEL, type ClaudeModelId } from "./claude-models";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -7,10 +10,11 @@ const anthropic = new Anthropic({
 export async function analyzeImage(
   base64Image: string,
   mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif",
-  exifContext: string
+  exifContext: string,
+  model: ClaudeModelId = DEFAULT_MODEL
 ) {
   const response = await anthropic.messages.create({
-    model: "claude-haiku-4-5-20251001",
+    model,
     max_tokens: 1500,
     messages: [
       {
