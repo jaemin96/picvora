@@ -27,6 +27,12 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
+
+  // /user/:id → /users/:id 리다이렉트
+  if (/^\/user\//.test(pathname)) {
+    return NextResponse.redirect(new URL(pathname.replace(/^\/user\//, "/users/"), request.url));
+  }
+
   const isAuthPage = pathname === "/login" || pathname === "/signup";
 
   if (!user && !isAuthPage) {

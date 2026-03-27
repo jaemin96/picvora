@@ -100,6 +100,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ analysis, exif, address });
   } catch (error) {
     console.error("Analyze API error:", error);
+    const status = (error as { status?: number })?.status;
+    if (status === 529 || status === 503) {
+      return NextResponse.json(
+        { error: "AI 서버가 일시적으로 과부하 상태입니다. 잠시 후 다시 시도해주세요." },
+        { status: 503 }
+      );
+    }
     return NextResponse.json({ error: "분석 중 오류가 발생했습니다." }, { status: 500 });
   }
 }

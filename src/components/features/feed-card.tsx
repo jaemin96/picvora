@@ -95,7 +95,7 @@ export function FeedCard({
       a.download = `picvora-${card.share_id}.jpg`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success("이미지가 저장되었습니다", { id: toastId });
+      toast.success("다운로드를 시작합니다", { id: toastId });
     } catch {
       toast.error("다운로드에 실패했습니다", { id: toastId });
       window.open(card.image_url, "_blank");
@@ -117,7 +117,7 @@ export function FeedCard({
       {/* 카드 헤더 */}
       <div className="flex items-center justify-between px-4 py-3">
         <Link
-          href={`/profile/${card.user_id}`}
+          href={`/users/${card.user_id}`}
           className="flex min-w-0 items-center gap-2.5"
           onClick={(e) => e.stopPropagation()}
         >

@@ -5,6 +5,7 @@ export { CLAUDE_MODELS, DEFAULT_MODEL, type ClaudeModelId } from "./claude-model
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
+  maxRetries: 3,
 });
 
 export async function analyzeImage(

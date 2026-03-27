@@ -197,7 +197,7 @@ export function CardDetailClient({
       a.download = `picvora-${card.share_id}.jpg`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success("이미지가 저장되었습니다", { id: toastId });
+      toast.success("다운로드를 시작합니다", { id: toastId });
     } catch {
       toast.error("다운로드에 실패했습니다", { id: toastId });
       window.open(card.image_url, "_blank");
