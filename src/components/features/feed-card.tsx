@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import {
   Eye,
   MessageCircle,
@@ -84,6 +85,7 @@ export function FeedCard({
     e.preventDefault();
     e.stopPropagation();
     if (!card.image_url) return;
+    const toastId = toast.loading("다운로드 중...");
     try {
       const res = await fetch(card.image_url);
       const blob = await res.blob();
@@ -93,7 +95,9 @@ export function FeedCard({
       a.download = `picvora-${card.share_id}.jpg`;
       a.click();
       URL.revokeObjectURL(url);
+      toast.success("이미지가 저장되었습니다", { id: toastId });
     } catch {
+      toast.error("다운로드에 실패했습니다", { id: toastId });
       window.open(card.image_url, "_blank");
     }
   };
@@ -102,7 +106,7 @@ export function FeedCard({
     e.preventDefault();
     e.stopPropagation();
     setMenuOpen(false);
-    alert("신고가 접수되었습니다. 검토 후 조치하겠습니다.");
+    toast.success("신고가 접수되었습니다. 검토 후 조치하겠습니다.");
   };
 
   const displayName = card.display_name || "사용자";

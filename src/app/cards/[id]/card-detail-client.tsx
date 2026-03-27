@@ -18,6 +18,7 @@ import {
   Download,
 } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { ShareView } from "@/components/features/share-view";
 import { LikeButton } from "@/components/features/like-button";
 import { CommentSection } from "@/components/features/comment-section";
@@ -112,9 +113,16 @@ export function CardDetailClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ visibility: v }),
       });
-      if (!res.ok) setCurrentVisibility(prev);
+      if (!res.ok) {
+        setCurrentVisibility(prev);
+        toast.error("공개 범위 변경에 실패했습니다");
+      } else {
+        const label = { public: "전체 공개", followers: "팔로워 공개", private: "나만 보기" }[v];
+        toast.success(`${label}으로 변경되었습니다`);
+      }
     } catch {
       setCurrentVisibility(prev);
+      toast.error("공개 범위 변경에 실패했습니다");
     }
   };
 
@@ -145,7 +153,12 @@ export function CardDetailClient({
       if (res.ok) {
         setIsDeleted(true);
         setConfirmAction(null);
+        toast.success("삭제 대기 상태로 변경되었습니다");
+      } else {
+        toast.error("삭제에 실패했습니다");
       }
+    } catch {
+      toast.error("삭제에 실패했습니다");
     } finally {
       setActionLoading(false);
     }
@@ -161,7 +174,12 @@ export function CardDetailClient({
       });
       if (res.ok) {
         setIsDeleted(false);
+        toast.success("게시글이 복구되었습니다");
+      } else {
+        toast.error("복구에 실패했습니다");
       }
+    } catch {
+      toast.error("복구에 실패했습니다");
     } finally {
       setActionLoading(false);
     }
@@ -169,6 +187,7 @@ export function CardDetailClient({
 
   const handleDownload = async () => {
     if (!card.image_url) return;
+    const toastId = toast.loading("다운로드 중...");
     try {
       const res = await fetch(card.image_url);
       const blob = await res.blob();
@@ -178,7 +197,9 @@ export function CardDetailClient({
       a.download = `picvora-${card.share_id}.jpg`;
       a.click();
       URL.revokeObjectURL(url);
+      toast.success("이미지가 저장되었습니다", { id: toastId });
     } catch {
+      toast.error("다운로드에 실패했습니다", { id: toastId });
       window.open(card.image_url, "_blank");
     }
   };
@@ -188,8 +209,13 @@ export function CardDetailClient({
     try {
       const res = await fetch(`/api/cards/${card.share_id}?permanent=true`, { method: "DELETE" });
       if (res.ok) {
+        toast.success("완전히 삭제되었습니다");
         router.push("/my");
+      } else {
+        toast.error("삭제에 실패했습니다");
       }
+    } catch {
+      toast.error("삭제에 실패했습니다");
     } finally {
       setActionLoading(false);
     }

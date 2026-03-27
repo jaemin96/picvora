@@ -113,6 +113,10 @@ export function EditableResultCard({
 }) {
   const { extractedExif, address } = usePhotoStore();
   const analysis = initialAnalysis;
+  const [addingTag, setAddingTag] = useState(false);
+  const [newTagValue, setNewTagValue] = useState("");
+  const [addingSpecialty, setAddingSpecialty] = useState(false);
+  const [newSpecialtyValue, setNewSpecialtyValue] = useState("");
 
   const hasGps = extractedExif?.latitude != null && extractedExif?.longitude != null;
   const displayAddress = address ?? analysis.directions?.currentLocation ?? "현재 위치";
@@ -122,12 +126,6 @@ export function EditableResultCard({
   const removeTag = (index: number) =>
     update({ tags: analysis.tags.filter((_, i) => i !== index) });
 
-  const addTag = () => {
-    const label = prompt("새 태그 이름:");
-    if (!label) return;
-    update({ tags: [...analysis.tags, { label, type: "subject" }] });
-  };
-
   const updateTag = (index: number, label: string) => {
     const tags = [...analysis.tags];
     tags[index] = { ...tags[index], label };
@@ -136,12 +134,6 @@ export function EditableResultCard({
 
   const removeSpecialty = (index: number) =>
     update({ specialties: analysis.specialties.filter((_, i) => i !== index) });
-
-  const addSpecialty = () => {
-    const s = prompt("새 명물/특산물:");
-    if (!s) return;
-    update({ specialties: [...analysis.specialties, s] });
-  };
 
   const removePlace = (index: number) =>
     update({ nearbyPlaces: analysis.nearbyPlaces.filter((_, i) => i !== index) });
@@ -192,12 +184,40 @@ export function EditableResultCard({
             </button>
           </div>
         ))}
-        <button
-          onClick={addTag}
-          className="flex items-center gap-1 rounded-full border border-dashed border-primary/40 px-2.5 py-1 text-xs text-primary/60 hover:border-primary hover:text-primary transition-colors"
-        >
-          <Plus className="h-3 w-3" /> 태그 추가
-        </button>
+        {addingTag ? (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const label = newTagValue.trim();
+              if (label) update({ tags: [...analysis.tags, { label, type: "subject" }] });
+              setNewTagValue("");
+              setAddingTag(false);
+            }}
+            className="flex items-center gap-1"
+          >
+            <input
+              autoFocus
+              value={newTagValue}
+              onChange={(e) => setNewTagValue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Escape") { setAddingTag(false); setNewTagValue(""); } }}
+              placeholder="태그 이름"
+              className="w-24 rounded-full border border-primary/50 bg-background px-2.5 py-1 text-xs outline-none focus:ring-1 focus:ring-primary"
+            />
+            <button type="submit" className="rounded-full p-1 text-primary hover:bg-primary/10">
+              <Check className="h-3.5 w-3.5" />
+            </button>
+            <button type="button" onClick={() => { setAddingTag(false); setNewTagValue(""); }} className="rounded-full p-1 text-muted-foreground hover:bg-muted">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </form>
+        ) : (
+          <button
+            onClick={() => setAddingTag(true)}
+            className="flex items-center gap-1 rounded-full border border-dashed border-primary/40 px-2.5 py-1 text-xs text-primary/60 hover:border-primary hover:text-primary transition-colors"
+          >
+            <Plus className="h-3 w-3" /> 태그 추가
+          </button>
+        )}
       </motion.div>
 
       {/* 주변 정보 */}
@@ -293,12 +313,40 @@ export function EditableResultCard({
                 </button>
               </div>
             ))}
-            <button
-              onClick={addSpecialty}
-              className="flex items-center gap-1 rounded-full border border-dashed border-primary/40 px-2.5 py-1 text-xs text-primary/60 hover:border-primary hover:text-primary transition-colors"
-            >
-              <Plus className="h-3 w-3" /> 추가
-            </button>
+            {addingSpecialty ? (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const s = newSpecialtyValue.trim();
+                  if (s) update({ specialties: [...analysis.specialties, s] });
+                  setNewSpecialtyValue("");
+                  setAddingSpecialty(false);
+                }}
+                className="flex items-center gap-1"
+              >
+                <input
+                  autoFocus
+                  value={newSpecialtyValue}
+                  onChange={(e) => setNewSpecialtyValue(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Escape") { setAddingSpecialty(false); setNewSpecialtyValue(""); } }}
+                  placeholder="명물 이름"
+                  className="w-24 rounded-full border border-primary/50 bg-background px-2.5 py-1 text-xs outline-none focus:ring-1 focus:ring-primary"
+                />
+                <button type="submit" className="rounded-full p-1 text-primary hover:bg-primary/10">
+                  <Check className="h-3.5 w-3.5" />
+                </button>
+                <button type="button" onClick={() => { setAddingSpecialty(false); setNewSpecialtyValue(""); }} className="rounded-full p-1 text-muted-foreground hover:bg-muted">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </form>
+            ) : (
+              <button
+                onClick={() => setAddingSpecialty(true)}
+                className="flex items-center gap-1 rounded-full border border-dashed border-primary/40 px-2.5 py-1 text-xs text-primary/60 hover:border-primary hover:text-primary transition-colors"
+              >
+                <Plus className="h-3 w-3" /> 추가
+              </button>
+            )}
           </div>
         </motion.div>
       )}

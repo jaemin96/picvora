@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Loader2, UserPlus, UserMinus } from "lucide-react";
+import { toast } from "sonner";
 
 type FollowButtonProps = {
   targetUserId: string;
@@ -27,7 +28,12 @@ export function FollowButton({ targetUserId, isFollowing: initialFollowing, onTo
         const newState = data.action === "followed";
         setIsFollowing(newState);
         onToggle?.(newState);
+        toast.success(newState ? "팔로우했습니다" : "언팔로우했습니다");
+      } else {
+        toast.error("요청에 실패했습니다");
       }
+    } catch {
+      toast.error("요청에 실패했습니다");
     } finally {
       setLoading(false);
     }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { ArrowLeft, Camera, Save } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -71,6 +72,10 @@ export function EditCardClient({ card }: { card: CardRow }) {
   const router = useRouter();
   const [analysis, setAnalysis] = useState<PhotoAnalysis>(card.analysis);
   const [saving, setSaving] = useState(false);
+  const [addingTag, setAddingTag] = useState(false);
+  const [newTagValue, setNewTagValue] = useState("");
+  const [addingSpecialty, setAddingSpecialty] = useState(false);
+  const [newSpecialtyValue, setNewSpecialtyValue] = useState("");
 
   const update = (partial: Partial<PhotoAnalysis>) => setAnalysis((a) => ({ ...a, ...partial }));
 
@@ -86,10 +91,11 @@ export function EditCardClient({ card }: { card: CardRow }) {
         body: JSON.stringify({ analysis }),
       });
       if (!res.ok) throw new Error("저장 실패");
+      toast.success("저장되었습니다");
       router.push(`/cards/${card.share_id}`);
       router.refresh();
     } catch {
-      alert("저장에 실패했습니다.");
+      toast.error("저장에 실패했습니다");
     } finally {
       setSaving(false);
     }
@@ -158,12 +164,37 @@ export function EditCardClient({ card }: { card: CardRow }) {
                 </button>
               </div>
             ))}
-            <button onClick={() => {
-              const label = prompt("새 태그 이름:"); if (!label) return;
-              update({ tags: [...analysis.tags, { label, type: "subject" }] });
-            }} className="flex items-center gap-1 rounded-full border border-dashed border-primary/40 px-2.5 py-1 text-xs text-primary/60 hover:border-primary hover:text-primary transition-colors">
-              <Plus className="h-3 w-3" /> 태그 추가
-            </button>
+            {addingTag ? (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const label = newTagValue.trim();
+                  if (label) update({ tags: [...analysis.tags, { label, type: "subject" }] });
+                  setNewTagValue("");
+                  setAddingTag(false);
+                }}
+                className="flex items-center gap-1"
+              >
+                <input
+                  autoFocus
+                  value={newTagValue}
+                  onChange={(e) => setNewTagValue(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Escape") { setAddingTag(false); setNewTagValue(""); } }}
+                  placeholder="태그 이름"
+                  className="w-24 rounded-full border border-primary/50 bg-background px-2.5 py-1 text-xs outline-none focus:ring-1 focus:ring-primary"
+                />
+                <button type="submit" className="rounded-full p-1 text-primary hover:bg-primary/10">
+                  <Check className="h-3.5 w-3.5" />
+                </button>
+                <button type="button" onClick={() => { setAddingTag(false); setNewTagValue(""); }} className="rounded-full p-1 text-muted-foreground hover:bg-muted">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </form>
+            ) : (
+              <button onClick={() => setAddingTag(true)} className="flex items-center gap-1 rounded-full border border-dashed border-primary/40 px-2.5 py-1 text-xs text-primary/60 hover:border-primary hover:text-primary transition-colors">
+                <Plus className="h-3 w-3" /> 태그 추가
+              </button>
+            )}
           </motion.div>
 
           {/* 주변 정보 */}
@@ -222,12 +253,37 @@ export function EditCardClient({ card }: { card: CardRow }) {
                     </button>
                   </div>
                 ))}
-                <button onClick={() => {
-                  const s = prompt("새 명물/특산물:"); if (!s) return;
-                  update({ specialties: [...analysis.specialties, s] });
-                }} className="flex items-center gap-1 rounded-full border border-dashed border-primary/40 px-2.5 py-1 text-xs text-primary/60 hover:border-primary hover:text-primary transition-colors">
-                  <Plus className="h-3 w-3" /> 추가
-                </button>
+                {addingSpecialty ? (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const s = newSpecialtyValue.trim();
+                      if (s) update({ specialties: [...analysis.specialties, s] });
+                      setNewSpecialtyValue("");
+                      setAddingSpecialty(false);
+                    }}
+                    className="flex items-center gap-1"
+                  >
+                    <input
+                      autoFocus
+                      value={newSpecialtyValue}
+                      onChange={(e) => setNewSpecialtyValue(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Escape") { setAddingSpecialty(false); setNewSpecialtyValue(""); } }}
+                      placeholder="명물 이름"
+                      className="w-24 rounded-full border border-primary/50 bg-background px-2.5 py-1 text-xs outline-none focus:ring-1 focus:ring-primary"
+                    />
+                    <button type="submit" className="rounded-full p-1 text-primary hover:bg-primary/10">
+                      <Check className="h-3.5 w-3.5" />
+                    </button>
+                    <button type="button" onClick={() => { setAddingSpecialty(false); setNewSpecialtyValue(""); }} className="rounded-full p-1 text-muted-foreground hover:bg-muted">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </form>
+                ) : (
+                  <button onClick={() => setAddingSpecialty(true)} className="flex items-center gap-1 rounded-full border border-dashed border-primary/40 px-2.5 py-1 text-xs text-primary/60 hover:border-primary hover:text-primary transition-colors">
+                    <Plus className="h-3 w-3" /> 추가
+                  </button>
+                )}
               </div>
             </motion.div>
           )}

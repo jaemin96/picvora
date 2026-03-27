@@ -22,6 +22,7 @@ import {
   Lock,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import { ImageCropEditor } from "@/components/features/image-crop-editor";
 import { FollowListModal } from "@/components/features/follow-list-modal";
 import { LocationFilter, type LocationSelection } from "@/components/features/location-filter";
@@ -79,7 +80,6 @@ export default function MyPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [cropPreviewUrl, setCropPreviewUrl] = useState<string | null>(null);
   const [followCounts, setFollowCounts] = useState({ follower_count: 0, following_count: 0 });
   const [followModal, setFollowModal] = useState<"followers" | "following" | null>(null);
@@ -171,7 +171,6 @@ export default function MyPage() {
 
   const handleSaveProfile = async () => {
     setSaving(true);
-    setMessage(null);
     try {
       const body: Record<string, string> = {};
       if (form.display_name !== profile?.display_name) body.display_name = form.display_name;
@@ -192,17 +191,16 @@ export default function MyPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setMessage({ type: "error", text: data.error ?? "저장에 실패했습니다" });
+        toast.error(data.error ?? "저장에 실패했습니다");
         return;
       }
 
       setProfile(data);
       setForm((prev) => ({ ...prev, password: "" }));
       setEditing(false);
-      setMessage({ type: "success", text: "프로필이 저장되었습니다" });
-      setTimeout(() => setMessage(null), 3000);
+      toast.success("프로필이 저장되었습니다");
     } catch {
-      setMessage({ type: "error", text: "저장에 실패했습니다" });
+      toast.error("저장에 실패했습니다");
     } finally {
       setSaving(false);
     }
@@ -222,7 +220,6 @@ export default function MyPage() {
   const handleCropApply = useCallback(async (blob: Blob) => {
     setCropPreviewUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
     setUploadingAvatar(true);
-    setMessage(null);
     try {
       const formData = new FormData();
       formData.append("avatar", blob, "avatar.jpg");
@@ -234,15 +231,14 @@ export default function MyPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setMessage({ type: "error", text: data.error ?? "업로드에 실패했습니다" });
+        toast.error(data.error ?? "업로드에 실패했습니다");
         return;
       }
 
       setProfile((prev) => (prev ? { ...prev, avatar_url: data.avatar_url } : prev));
-      setMessage({ type: "success", text: "프로필 사진이 변경되었습니다" });
-      setTimeout(() => setMessage(null), 3000);
+      toast.success("프로필 사진이 변경되었습니다");
     } catch {
-      setMessage({ type: "error", text: "업로드에 실패했습니다" });
+      toast.error("업로드에 실패했습니다");
     } finally {
       setUploadingAvatar(false);
     }
@@ -260,7 +256,6 @@ export default function MyPage() {
       email: profile?.email ?? "",
       password: "",
     });
-    setMessage(null);
   };
 
   const [cardActionLoading, setCardActionLoading] = useState<string | null>(null);
@@ -270,7 +265,14 @@ export default function MyPage() {
     setCardActionLoading(shareId);
     try {
       const res = await fetch(`/api/cards/${shareId}`, { method: "DELETE" });
-      if (res.ok) resetMyCards();
+      if (res.ok) {
+        resetMyCards();
+        toast.success("삭제 대기 상태로 변경되었습니다");
+      } else {
+        toast.error("삭제에 실패했습니다");
+      }
+    } catch {
+      toast.error("삭제에 실패했습니다");
     } finally {
       setCardActionLoading(null);
       setConfirmDelete(null);
@@ -285,7 +287,14 @@ export default function MyPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "restore" }),
       });
-      if (res.ok) resetMyCards();
+      if (res.ok) {
+        resetMyCards();
+        toast.success("게시글이 복구되었습니다");
+      } else {
+        toast.error("복구에 실패했습니다");
+      }
+    } catch {
+      toast.error("복구에 실패했습니다");
     } finally {
       setCardActionLoading(null);
     }
@@ -295,7 +304,14 @@ export default function MyPage() {
     setCardActionLoading(shareId);
     try {
       const res = await fetch(`/api/cards/${shareId}?permanent=true`, { method: "DELETE" });
-      if (res.ok) resetMyCards();
+      if (res.ok) {
+        resetMyCards();
+        toast.success("완전히 삭제되었습니다");
+      } else {
+        toast.error("삭제에 실패했습니다");
+      }
+    } catch {
+      toast.error("삭제에 실패했습니다");
     } finally {
       setCardActionLoading(null);
       setConfirmDelete(null);
@@ -504,18 +520,6 @@ export default function MyPage() {
             </div>
           </div>
 
-          {/* 메시지 */}
-          {message && (
-            <motion.p
-              initial={{ opacity: 0, y: -5 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`mt-3 text-xs font-medium ${
-                message.type === "success" ? "text-green-500" : "text-red-500"
-              }`}
-            >
-              {message.text}
-            </motion.p>
-          )}
         </div>
       </div>
 
