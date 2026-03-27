@@ -15,6 +15,7 @@ import {
   Globe,
   Users,
   Lock,
+  Download,
 } from "lucide-react";
 import Link from "next/link";
 import { ShareView } from "@/components/features/share-view";
@@ -166,6 +167,22 @@ export function CardDetailClient({
     }
   };
 
+  const handleDownload = async () => {
+    if (!card.image_url) return;
+    try {
+      const res = await fetch(card.image_url);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `picvora-${card.share_id}.jpg`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      window.open(card.image_url, "_blank");
+    }
+  };
+
   const handlePermanentDelete = async () => {
     setActionLoading(true);
     try {
@@ -217,6 +234,16 @@ export function CardDetailClient({
                 <span className="text-xs font-medium">{liveCommentCount}</span>
               )}
             </button>
+            {/* 다운로드 */}
+            {card.image_url && (
+              <button
+                onClick={handleDownload}
+                className="flex items-center gap-1.5 rounded-full border border-border p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                title="원본 이미지 다운로드"
+              >
+                <Download className="h-4 w-4" />
+              </button>
+            )}
             {/* 좋아요 */}
             {!isDeleted && <LikeButton cardId={card.share_id} size="lg" />}
             {/* 수정 (작성자, 삭제되지 않은 경우) */}

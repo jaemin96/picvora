@@ -80,6 +80,24 @@ export function FeedCard({
     onHide?.(card.share_id);
   };
 
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!card.image_url) return;
+    try {
+      const res = await fetch(card.image_url);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `picvora-${card.share_id}.jpg`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      window.open(card.image_url, "_blank");
+    }
+  };
+
   const handleReport = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -229,13 +247,15 @@ export function FeedCard({
           {copied && <span className="text-xs">복사됨</span>}
         </button>
 
-        {/* 다운로드 (placeholder) */}
-        <button
-          onClick={(e) => e.preventDefault()}
-          className="flex items-center gap-1.5 rounded-full border border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
-        >
-          <Download className="h-4 w-4" />
-        </button>
+        {/* 다운로드 */}
+        {card.image_url && (
+          <button
+            onClick={handleDownload}
+            className="flex items-center gap-1.5 rounded-full border border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+          >
+            <Download className="h-4 w-4" />
+          </button>
+        )}
       </div>
     </article>
   );
