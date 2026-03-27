@@ -9,6 +9,7 @@ import { UploadFlow } from "@/components/features/upload-flow";
 import { LikeButton } from "@/components/features/like-button";
 import { LocationFilter, type LocationSelection } from "@/components/features/location-filter";
 import { NotificationBell } from "@/components/features/notification-bell";
+import { SearchBar } from "@/components/features/search-bar";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 
@@ -108,6 +109,7 @@ export default function Home() {
             <span className="text-xl font-bold tracking-tight">Picvora</span>
           </div>
           <div className="flex items-center gap-2.5">
+            <SearchBar />
             <button
               onClick={() => setShowUpload(true)}
               className="flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
