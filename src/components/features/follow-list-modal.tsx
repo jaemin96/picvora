@@ -99,7 +99,7 @@ export function FollowListModal({ userId, type, onClose, onFollowChange }: Follo
                     key={u.id}
                     className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-muted/50 transition-colors"
                   >
-                    <Link href={`/users/${u.id}`} onClick={onClose} className="shrink-0">
+                    <Link href={u.is_me ? "/my" : `/users/${u.id}`} onClick={onClose} className="shrink-0">
                       {u.avatar_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -114,7 +114,7 @@ export function FollowListModal({ userId, type, onClose, onFollowChange }: Follo
                       )}
                     </Link>
                     <Link
-                      href={`/users/${u.id}`}
+                      href={u.is_me ? "/my" : `/users/${u.id}`}
                       onClick={onClose}
                       className="flex-1 min-w-0"
                     >

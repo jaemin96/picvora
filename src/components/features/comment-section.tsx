@@ -108,7 +108,7 @@ function CommentItem({
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
             <Link
-              href={`/users/${comment.user_id}`}
+              href={isMine ? "/my" : `/users/${comment.user_id}`}
               className="text-xs font-semibold truncate hover:underline"
             >
               {authorName}

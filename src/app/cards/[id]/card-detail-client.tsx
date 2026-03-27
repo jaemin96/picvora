@@ -46,11 +46,11 @@ type AuthorProfile = {
   avatar_url: string | null;
 };
 
-function AuthorBadge({ userId, profile }: { userId: string; profile: AuthorProfile | null }) {
+function AuthorBadge({ userId, profile, isMe }: { userId: string; profile: AuthorProfile | null; isMe: boolean }) {
   const name = profile?.display_name ?? "알 수 없음";
   return (
     <Link
-      href={`/users/${userId}`}
+      href={isMe ? "/my" : `/users/${userId}`}
       className="flex items-center gap-2 group w-fit"
     >
       {profile?.avatar_url ? (
@@ -266,7 +266,7 @@ export function CardDetailClient({
       <div className={`mx-auto w-full max-w-lg px-4 py-6 ${isDeleted ? "opacity-60" : ""}`}>
         {/* 작성자 + 공개범위 */}
         <div className="mb-4 flex items-center justify-between">
-          <AuthorBadge userId={card.user_id} profile={authorProfile} />
+          <AuthorBadge userId={card.user_id} profile={authorProfile} isMe={isOwner} />
           {isOwner ? (
             <div className="relative">
               <button
