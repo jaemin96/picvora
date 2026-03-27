@@ -7,7 +7,8 @@ export type InfiniteCardsFetcher<T> = (cursor: string | null, limit: number) => 
   nextCursor: string | null;
 }>;
 
-const PAGE_SIZE = 18;
+const INITIAL_SIZE = 10;
+const PAGE_SIZE = 4;
 
 export function useInfiniteCards<T>(
   fetcher: InfiniteCardsFetcher<T>,
@@ -25,7 +26,7 @@ export function useInfiniteCards<T>(
     setCards([]);
     cursorRef.current = null;
     try {
-      const result = await fetcher(null, PAGE_SIZE);
+      const result = await fetcher(null, INITIAL_SIZE);
       setCards(result.cards);
       cursorRef.current = result.nextCursor;
       setHasMore(result.nextCursor !== null);

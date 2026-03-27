@@ -1,12 +1,12 @@
 "use client";
 
-import { Camera, Plus, ImageIcon, LogOut, User, Eye, MessageCircle, Loader2 } from "lucide-react";
+import { Camera, Plus, ImageIcon, LogOut, User, Loader2 } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { UploadFlow } from "@/components/features/upload-flow";
-import { LikeButton } from "@/components/features/like-button";
+import { FeedCard } from "@/components/features/feed-card";
 import { LocationFilter, type LocationSelection } from "@/components/features/location-filter";
 import { NotificationBell } from "@/components/features/notification-bell";
 import { SearchBar } from "@/components/features/search-bar";
@@ -18,10 +18,13 @@ type CardSummary = {
   share_id: string;
   image_url: string | null;
   address: string | null;
-  analysis: { shortcutMessage: string; mood: string; tags: { label: string; type: string }[] };
+  analysis: { shortcutMessage: string; mood: string; tags: { label: string; type: string }[] } | null;
   view_count: number;
   comment_count: number;
   created_at: string;
+  user_id: string;
+  display_name: string | null;
+  avatar_url: string | null;
 };
 
 export default function Home() {
@@ -57,10 +60,27 @@ export default function Home() {
     [filters, feed]
   );
 
-  const { cards, loading, loadingMore, sentinelRef, reset } = useInfiniteCards<CardSummary>(
+  const { cards: allCards, loading, loadingMore, sentinelRef, reset } = useInfiniteCards<CardSummary>(
     fetcher,
     [filters, feed]
   );
+
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    try {
+      const stored: string[] = JSON.parse(localStorage.getItem("hidden_cards") ?? "[]");
+      if (stored.length > 0) setHiddenIds(new Set(stored));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const cards = allCards.filter((c) => !hiddenIds.has(c.share_id));
+
+  const handleHide = (shareId: string) => {
+    setHiddenIds((prev) => new Set([...prev, shareId]));
+  };
 
   // Fetch user profile for avatar
   useEffect(() => {
@@ -206,12 +226,22 @@ export default function Home() {
           <LocationFilter onFilterChange={handleFilterChange} initialSelections={filters} />
         </div>
         {loading ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={i}
-                className="aspect-square animate-pulse rounded-2xl bg-muted"
-              />
+          <div className="flex flex-col gap-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="animate-pulse overflow-hidden rounded-2xl border border-border bg-card">
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <div className="h-9 w-9 shrink-0 rounded-full bg-muted" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 w-24 rounded bg-muted" />
+                    <div className="h-2.5 w-36 rounded bg-muted" />
+                  </div>
+                </div>
+                <div className="aspect-[4/3] bg-muted" />
+                <div className="px-4 py-3">
+                  <div className="h-3 w-3/4 rounded bg-muted" />
+                </div>
+                <div className="h-12 border-t border-border/50 bg-muted/20" />
+              </div>
             ))}
           </div>
         ) : cards.length === 0 ? (
@@ -250,59 +280,16 @@ export default function Home() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="grid grid-cols-2 gap-3 sm:grid-cols-3"
+              className="flex flex-col gap-4"
             >
               {cards.map((card, i) => (
                 <motion.div
                   key={card.share_id}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: Math.min(i * 0.04, 0.3) }}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: Math.min(i * 0.06, 0.4) }}
                 >
-                  <Link href={`/cards/${card.share_id}`} className="group block">
-                    <div className="relative overflow-hidden rounded-2xl border border-border bg-muted aspect-square">
-                      {card.image_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={card.image_url}
-                          alt={card.analysis?.shortcutMessage ?? "사진"}
-                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center">
-                          <ImageIcon className="h-8 w-8 text-muted-foreground" />
-                        </div>
-                      )}
-                      {/* 오버레이 */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                      <div className="absolute bottom-0 left-0 right-0 p-2.5 translate-y-1 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-                        <p className="text-xs font-medium text-white line-clamp-2">
-                          {card.analysis?.shortcutMessage}
-                        </p>
-                      </div>
-                      {/* 조회수 */}
-                      <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
-                        <Eye className="h-3 w-3" />
-                        {card.view_count ?? 0}
-                      </div>
-                      {/* 좋아요 */}
-                      <div className="absolute right-2 top-2">
-                        <LikeButton cardId={card.share_id} size="sm" />
-                      </div>
-                      {/* 댓글 수 (우하단) */}
-                      {(card.comment_count ?? 0) > 0 && (
-                        <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
-                          <MessageCircle className="h-3 w-3" />
-                          {card.comment_count}
-                        </div>
-                      )}
-                    </div>
-                    {card.address && (
-                      <p className="mt-1.5 truncate px-0.5 text-xs text-muted-foreground">
-                        {card.address}
-                      </p>
-                    )}
-                  </Link>
+                  <FeedCard card={card} currentUserId={userId} onHide={handleHide} />
                 </motion.div>
               ))}
             </motion.div>

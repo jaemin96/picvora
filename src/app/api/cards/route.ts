@@ -99,10 +99,24 @@ export async function GET(request: NextRequest) {
   const hasNextPage = allRows.length > limit;
   const pageRows = hasNextPage ? allRows.slice(0, limit) : allRows;
 
+  // 카드에 포함된 user_id 목록으로 profiles 일괄 조회
+  const userIds = [...new Set(pageRows.map((c) => c.user_id).filter(Boolean))];
+  const profileMap: Record<string, { display_name: string | null; avatar_url: string | null }> = {};
+  if (userIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, display_name, avatar_url")
+      .in("id", userIds);
+    for (const p of profiles ?? []) {
+      profileMap[p.id] = { display_name: p.display_name ?? null, avatar_url: p.avatar_url ?? null };
+    }
+  }
+
   const cards = pageRows.map((card) => {
     const raw = card.comment_count;
     const count = Array.isArray(raw) && raw.length > 0 ? (raw[0] as { count: number }).count : 0;
-    return { ...card, comment_count: count };
+    const profile = profileMap[card.user_id] ?? { display_name: null, avatar_url: null };
+    return { ...card, comment_count: count, ...profile };
   });
 
   const nextCursor = hasNextPage ? pageRows[pageRows.length - 1].created_at : null;
