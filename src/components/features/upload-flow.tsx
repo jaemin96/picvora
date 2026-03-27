@@ -441,6 +441,18 @@ export function UploadFlow({
 
               <div className="w-full max-w-lg flex gap-3">
                 <Button
+                  onClick={() => {
+                    reset();
+                    setStep("upload");
+                  }}
+                  variant="outline"
+                  className="gap-2"
+                  size="lg"
+                >
+                  <X className="h-4 w-4" />
+                  다시 선택
+                </Button>
+                <Button
                   onClick={() => setShowCropEditor(true)}
                   variant="outline"
                   className="gap-2"
