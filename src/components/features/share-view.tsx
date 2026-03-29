@@ -1,11 +1,13 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { MapPin, Navigation, Gift, Utensils, Coffee, Landmark, Star, Sparkles } from "lucide-react";
+import { MapPin, Navigation, Gift, Utensils, Coffee, Landmark, Star, Sparkles, Maximize2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import type { NearbyPlace, PhotoAnalysis, ExifData } from "@/types";
 import { TagBadge } from "./tag-badge";
+import { ImagePreviewModal } from "./image-preview-modal";
 
 const KakaoMap = dynamic(
   () => import("./kakao-map").then((m) => m.KakaoMap),
@@ -40,8 +42,10 @@ export function ShareView({ card }: { card: ShareCard }) {
   const { analysis, address, exif, image_url } = card;
   const hasGps = exif?.latitude != null && exif?.longitude != null;
   const displayAddress = address ?? analysis.directions?.currentLocation ?? "현재 위치";
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   return (
+    <>
     <motion.div
       variants={container}
       initial="hidden"
@@ -50,7 +54,7 @@ export function ShareView({ card }: { card: ShareCard }) {
     >
       {/* 이미지 */}
       {image_url && (
-        <motion.div variants={item} className="overflow-hidden rounded-2xl border border-border shadow-lg">
+        <motion.div variants={item} className="group relative overflow-hidden rounded-2xl border border-border shadow-lg">
           <Image
             src={image_url}
             alt="공유된 사진"
@@ -59,6 +63,14 @@ export function ShareView({ card }: { card: ShareCard }) {
             className="h-auto w-full object-cover"
             unoptimized
           />
+          {/* 프리뷰 버튼 */}
+          <button
+            onClick={() => setPreviewOpen(true)}
+            className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white opacity-0 backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100 hover:bg-black/60"
+            title="원본 보기"
+          >
+            <Maximize2 className="h-3.5 w-3.5" />
+          </button>
         </motion.div>
       )}
 
@@ -153,5 +165,15 @@ export function ShareView({ card }: { card: ShareCard }) {
         </motion.div>
       )}
     </motion.div>
+
+    {/* 이미지 프리뷰 모달 */}
+    {previewOpen && image_url && (
+      <ImagePreviewModal
+        src={image_url}
+        alt="공유된 사진"
+        onClose={() => setPreviewOpen(false)}
+      />
+    )}
+    </>
   );
 }

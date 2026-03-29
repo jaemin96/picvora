@@ -14,8 +14,10 @@ import {
   MapPin,
   ImageIcon,
   Check,
+  Maximize2,
 } from "lucide-react";
 import { LikeButton } from "./like-button";
+import { ImagePreviewModal } from "./image-preview-modal";
 
 type CardSummary = {
   share_id: string;
@@ -41,6 +43,7 @@ export function FeedCard({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const isOwn = currentUserId === card.user_id;
 
@@ -113,6 +116,7 @@ export function FeedCard({
   const initial = displayName[0].toUpperCase();
 
   return (
+    <>
     <article className="overflow-hidden rounded-2xl border border-border bg-card">
       {/* 카드 헤더 */}
       <div className="flex items-center justify-between px-4 py-3">
@@ -192,12 +196,26 @@ export function FeedCard({
       <Link href={`/cards/${card.share_id}`} className="group block">
         <div className="relative aspect-[4/3] overflow-hidden bg-muted">
           {card.image_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={card.image_url}
-              alt={card.analysis?.shortcutMessage ?? "사진"}
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-            />
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={card.image_url}
+                alt={card.analysis?.shortcutMessage ?? "사진"}
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+              />
+              {/* 프리뷰 버튼 */}
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setPreviewOpen(true);
+                }}
+                className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white opacity-0 backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100 hover:bg-black/60"
+                title="원본 보기"
+              >
+                <Maximize2 className="h-3.5 w-3.5" />
+              </button>
+            </>
           ) : (
             <div className="flex h-full items-center justify-center">
               <ImageIcon className="h-10 w-10 text-muted-foreground" />
@@ -262,5 +280,15 @@ export function FeedCard({
         )}
       </div>
     </article>
+
+    {/* 이미지 프리뷰 모달 */}
+    {previewOpen && card.image_url && (
+      <ImagePreviewModal
+        src={card.image_url}
+        alt={card.analysis?.shortcutMessage ?? "사진"}
+        onClose={() => setPreviewOpen(false)}
+      />
+    )}
+  </>
   );
 }
