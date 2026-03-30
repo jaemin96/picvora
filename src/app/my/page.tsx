@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -55,7 +55,7 @@ type Profile = {
 
 type Tab = "my" | "liked";
 
-export default function MyPage() {
+function MyPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -754,5 +754,13 @@ export default function MyPage() {
       </div>
     )}
     </>
+  );
+}
+
+export default function MyPage() {
+  return (
+    <Suspense>
+      <MyPageContent />
+    </Suspense>
   );
 }

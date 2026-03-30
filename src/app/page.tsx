@@ -2,7 +2,7 @@
 
 import { Camera, Plus, ImageIcon, LogOut, User, Loader2, Shield } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,7 @@ type CardSummary = {
   avatar_url: string | null;
 };
 
-export default function Home() {
+function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showUpload, setShowUpload] = useState(false);
@@ -331,5 +331,13 @@ export default function Home() {
         )}
       </AnimatePresence>
     </main>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense>
+      <HomeContent />
+    </Suspense>
   );
 }
