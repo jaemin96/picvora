@@ -1,6 +1,6 @@
 "use client";
 
-import { Camera, Plus, ImageIcon, LogOut, User, Loader2 } from "lucide-react";
+import { Camera, Plus, ImageIcon, LogOut, User, Loader2, Shield } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -43,6 +43,7 @@ export default function Home() {
   const [displayName, setDisplayName] = useState<string>("");
   const [userId, setUserId] = useState<string | null>(null);
   const [showMenu, setShowMenu] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const fetcher = useCallback(
@@ -91,6 +92,7 @@ export default function Home() {
         if (data.display_name) setDisplayName(data.display_name);
         else if (data.email) setDisplayName(data.email);
         if (data.id) setUserId(data.id);
+        if (data.role === "admin") setIsAdmin(true);
       })
       .catch(() => {});
   }, []);
@@ -176,6 +178,19 @@ export default function Home() {
               </button>
               {showMenu && (
                 <div className="absolute right-0 top-full mt-2 w-40 overflow-hidden rounded-xl border border-border bg-background shadow-lg">
+                  {isAdmin && (
+                    <>
+                      <Link
+                        href="/admin"
+                        onClick={() => setShowMenu(false)}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
+                      >
+                        <Shield className="h-4 w-4 text-muted-foreground" />
+                        관리자 페이지
+                      </Link>
+                      <div className="border-b border-border" />
+                    </>
+                  )}
                   <Link
                     href="/my"
                     onClick={() => setShowMenu(false)}

@@ -12,12 +12,20 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // profiles에서 role 조회
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
   return NextResponse.json({
     id: user.id,
     email: user.email,
     display_name: user.user_metadata?.display_name ?? "",
     username: user.user_metadata?.username ?? "",
     avatar_url: user.user_metadata?.avatar_url ?? "",
+    role: profile?.role ?? "user",
   });
 }
 
