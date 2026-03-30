@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 
   // actor 프로필 일괄 조회
   const actorIds = Array.from(new Set(list.map((n) => n.actor_id)));
-  let profileMap: Record<string, { display_name: string | null; avatar_url: string | null }> = {};
+  const profileMap: Record<string, { display_name: string | null; avatar_url: string | null }> = {};
   if (actorIds.length > 0) {
     const { data: profiles } = await supabase
       .from("profiles")
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 
   // 카드 썸네일 일괄 조회
   const cardIds = Array.from(new Set(list.map((n) => n.card_id).filter(Boolean)));
-  let cardMap: Record<string, { image_url: string | null }> = {};
+  const cardMap: Record<string, { image_url: string | null }> = {};
   if (cardIds.length > 0) {
     const { data: cards } = await supabase
       .from("photo_cards")

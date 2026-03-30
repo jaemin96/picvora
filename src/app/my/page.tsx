@@ -66,7 +66,7 @@ export default function MyPage() {
 
   const [tab, setTab] = useState<Tab>(initialTab);
   const [locationFilters, setLocationFilters] = useState<LocationSelection[]>(initialFilters);
-  const [loading, setLoading] = useState(true);
+
 
   // Profile state
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -130,7 +130,6 @@ export default function MyPage() {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      setLoading(true);
       try {
         const profileRes = await fetch("/api/profile");
         const profileData = await profileRes.json();
@@ -149,8 +148,6 @@ export default function MyPage() {
         }
       } catch {
         // ignore
-      } finally {
-        setLoading(false);
       }
     };
     fetchProfile();

@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
   const pageRows = hasNextPage ? allRows.slice(0, limit) : allRows;
 
   // 카드에 포함된 user_id 목록으로 profiles 일괄 조회
-  const userIds = [...new Set(pageRows.map((c) => c.user_id).filter(Boolean))];
+  const userIds = Array.from(new Set(pageRows.map((c) => c.user_id).filter(Boolean)));
   const profileMap: Record<string, { display_name: string | null; avatar_url: string | null }> = {};
   if (userIds.length > 0) {
     const { data: profiles } = await supabase

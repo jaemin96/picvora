@@ -81,7 +81,7 @@ export default function Home() {
   const cards = allCards.filter((c) => !hiddenIds.has(c.share_id));
 
   const handleHide = (shareId: string) => {
-    setHiddenIds((prev) => new Set([...prev, shareId]));
+    setHiddenIds((prev) => new Set([...Array.from(prev), shareId]));
   };
 
   // Fetch user profile for avatar

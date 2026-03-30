@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
   // 작성자 프로필 일괄 조회 (display_name 없으면 email 앞부분 사용)
   const userIds = Array.from(new Set(list.map((c) => c.user_id)));
-  let profileMap: Record<string, { display_name: string | null; avatar_url: string | null }> = {};
+  const profileMap: Record<string, { display_name: string | null; avatar_url: string | null }> = {};
   if (userIds.length > 0) {
     const { data: profiles } = await supabase
       .from("profiles")
