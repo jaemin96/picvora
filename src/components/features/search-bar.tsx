@@ -81,26 +81,24 @@ export function SearchBar() {
 
   return (
     <div className="relative" ref={containerRef}>
-      {/* 검색 아이콘 버튼 */}
-      {!open && (
-        <button
-          onClick={() => setOpen(true)}
-          className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-muted"
-          aria-label="검색"
-        >
-          <Search className="h-5 w-5 text-muted-foreground" />
-        </button>
-      )}
+      {/* 검색 아이콘 버튼 (항상 렌더링, 레이아웃 기준 — 열리면 투명하게 숨김) */}
+      <button
+        onClick={() => setOpen(true)}
+        className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-muted ${open ? "pointer-events-none opacity-0" : ""}`}
+        aria-label="검색"
+      >
+        <Search className="h-5 w-5 text-muted-foreground" />
+      </button>
 
-      {/* 검색 입력창 (열렸을 때) */}
+      {/* 검색 입력창 (열렸을 때, absolute로 오버레이) */}
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ width: 36, opacity: 0.5 }}
+            initial={{ width: 36, opacity: 0 }}
             animate={{ width: 220, opacity: 1 }}
             exit={{ width: 36, opacity: 0 }}
             transition={{ duration: 0.18, ease: "easeOut" }}
-            className="flex items-center gap-1.5 overflow-hidden rounded-full border border-border bg-muted/60 px-3"
+            className="absolute right-0 top-0 flex items-center gap-1.5 overflow-hidden rounded-full border border-border bg-muted/60 px-3"
             style={{ height: 36 }}
           >
             <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
