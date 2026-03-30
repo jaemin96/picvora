@@ -22,6 +22,7 @@
     "heic2any": "^0.0.4",
     "lucide-react": "^0.344.0",
     "next": "14.2.5",
+    "next-themes": "^0.4.6",
     "react": "^18",
     "react-dom": "^18",
     "react-image-crop": "^11.0.10",

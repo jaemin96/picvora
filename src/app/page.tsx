@@ -1,6 +1,7 @@
 "use client";
 
 import { Camera, Plus, ImageIcon, LogOut, User, Loader2, Shield } from "lucide-react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -158,6 +159,7 @@ export default function Home() {
               새 사진
             </button>
             {userId && <NotificationBell userId={userId} />}
+            <ThemeToggle />
             <div className="relative flex items-center" ref={menuRef}>
               <button
                 onClick={() => setShowMenu(!showMenu)}
