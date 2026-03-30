@@ -9,6 +9,7 @@ import { usePhotoStore } from "@/stores/photo-store";
 import { extractExifData } from "@/lib/exif";
 import { EditableResultCard } from "./editable-result-card";
 import { ImageCropEditor } from "./image-crop-editor";
+import { LocationSearch } from "./location-search";
 import type { PhotoAnalysis, Visibility } from "@/types";
 import { CLAUDE_MODELS, DEFAULT_MODEL, type ClaudeModelId } from "@/lib/claude-models";
 
@@ -55,6 +56,7 @@ export function UploadFlow({
   const [shareId, setShareId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [showCropEditor, setShowCropEditor] = useState(false);
+  const [manualPlace, setManualPlace] = useState<{ name: string; address: string } | null>(null);
 
   const {
     uploadedPreview,
@@ -413,6 +415,34 @@ export function UploadFlow({
                       </div>
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* GPS 없을 때 수동 위치 입력 */}
+              {(!extractedExif?.latitude) && (
+                <div className="w-full max-w-lg">
+                  <p className="mb-2 text-sm font-medium text-muted-foreground">
+                    GPS 정보가 없어요. 촬영 위치를 직접 입력하면 더 정확한 분석이 가능해요
+                  </p>
+                  <LocationSearch
+                    selectedPlace={manualPlace}
+                    onSelect={(place) => {
+                      setManualPlace({ name: place.name, address: place.address });
+                      setExtractedExif({
+                        ...extractedExif,
+                        latitude: place.latitude,
+                        longitude: place.longitude,
+                      });
+                    }}
+                    onClear={() => {
+                      setManualPlace(null);
+                      setExtractedExif({
+                        ...extractedExif,
+                        latitude: undefined,
+                        longitude: undefined,
+                      });
+                    }}
+                  />
                 </div>
               )}
 
