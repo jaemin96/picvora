@@ -1,0 +1,10 @@
+<svg width="200" height="60" viewBox="0 0 200 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 아이콘 부분 -->
+  <circle cx="30" cy="30" r="25" fill="#A78BFA" />
+  <circle cx="30" cy="30" r="10" fill="white" fill-opacity="0.2" />
+  <path d="M30 15C21.7157 15 15 21.7157 15 30C15 38.2843 21.7157 45 30 45C38.2843 45 45 38.2843 45 30" stroke="#13111C" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="35" cy="25" r="3" fill="#13111C" />
+  
+  <!-- 텍스트 부분 -->
+  <text x="65" y="42" font-family="sans-serif" font-weight="bold" font-size="28" fill="#E9D5FF">Picvora</text>
+</svg>

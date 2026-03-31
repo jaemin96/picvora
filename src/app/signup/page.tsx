@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Camera } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 
@@ -46,9 +46,8 @@ export default function SignupPage() {
       <main className="flex min-h-screen flex-col items-center justify-center px-4">
         <div className="w-full max-w-sm space-y-6 text-center">
           <div className="flex flex-col items-center gap-3">
-            <div className="rounded-xl bg-primary/10 p-3">
-              <Camera className="h-7 w-7 text-primary" />
-            </div>
+            <Image src="/picvora-logo-dark.svg" alt="Picvora" width={140} height={42} className="hidden dark:block" priority />
+            <Image src="/picvora-logo-light.svg" alt="Picvora" width={140} height={42} className="block dark:hidden" priority />
             <h1 className="text-2xl font-bold tracking-tight">이메일을 확인하세요</h1>
           </div>
           <p className="text-sm text-muted-foreground">
@@ -68,10 +67,8 @@ export default function SignupPage() {
     <main className="flex min-h-screen flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-8">
         <div className="flex flex-col items-center gap-3">
-          <div className="rounded-xl bg-primary/10 p-3">
-            <Camera className="h-7 w-7 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight">Picvora</h1>
+          <Image src="/picvora-logo-dark.svg" alt="Picvora" width={140} height={42} className="hidden dark:block" priority />
+          <Image src="/picvora-logo-light.svg" alt="Picvora" width={140} height={42} className="block dark:hidden" priority />
           <p className="text-sm text-muted-foreground">새 계정을 만들어 시작하세요</p>
         </div>
 

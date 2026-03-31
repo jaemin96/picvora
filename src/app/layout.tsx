@@ -15,6 +15,10 @@ export const metadata: Metadata = {
   title: "Picvora - AI Photo Life Service",
   description:
     "사진 한 장으로 그 장소의 맥락을 추출하고 정보성 카드 UI를 생성하는 AI 포토 라이프 서비스",
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({

@@ -1,6 +1,7 @@
 "use client";
 
-import { Camera, Plus, ImageIcon, LogOut, User, Loader2, Shield } from "lucide-react";
+import { Plus, ImageIcon, LogOut, User, Loader2, Shield } from "lucide-react";
+import Image from "next/image";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -143,11 +144,23 @@ function HomeContent() {
       {/* 헤더 */}
       <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-2.5">
-            <div className="rounded-lg bg-primary/10 p-1.5">
-              <Camera className="h-5 w-5 text-primary" />
-            </div>
-            <span className="text-xl font-bold tracking-tight">Picvora</span>
+          <div className="flex items-center">
+            <Image
+              src="/picvora-logo-dark.svg"
+              alt="Picvora"
+              width={120}
+              height={36}
+              className="hidden dark:block"
+              priority
+            />
+            <Image
+              src="/picvora-logo-light.svg"
+              alt="Picvora"
+              width={120}
+              height={36}
+              className="block dark:hidden"
+              priority
+            />
           </div>
           <div className="flex items-center gap-2.5">
             <SearchBar />
