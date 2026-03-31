@@ -1,0 +1,13 @@
+<svg width="600" height="140" viewBox="0 0 600 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 아이콘: 찰나를 포착하는 보라색 렌즈 -->
+  <circle cx="60" cy="60" r="45" fill="#8B5CF6"/>
+  <circle cx="60" cy="60" r="20" fill="white" fill-opacity="0.2"/>
+  <path d="M60 35C46.1929 35 35 46.1929 35 60C35 73.8071 46.1929 85 60 85C73.8071 85 85 73.8071 85 60" stroke="white" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="72" cy="48" r="6" fill="white"/>
+  
+  <text x="120" y="70" font-family="Pretendard, -apple-system, sans-serif" font-weight="900" font-size="52" fill="#8B5CF6">Picvora</text>
+  
+  <text x="125" y="110" font-family="Pretendard, -apple-system, sans-serif" font-weight="500" font-size="19" fill="#7C3AED" letter-spacing="-0.02em">
+    당신의 찰나가 누군가의 경험으로 이어지도록
+  </text>
+</svg>
