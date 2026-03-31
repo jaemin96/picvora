@@ -228,7 +228,7 @@ function CommentContent({
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [cardId]);
+  }, [cardId, onCountChange]);
 
   const roots = comments.filter((c) => !c.parent_id);
   const repliesOf = (id: string) => comments.filter((c) => c.parent_id === id);

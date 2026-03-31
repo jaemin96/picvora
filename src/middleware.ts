@@ -35,8 +35,6 @@ export async function middleware(request: NextRequest) {
 
   const isAuthPage = pathname === "/login" || pathname === "/signup";
   const isPendingPage = pathname === "/pending";
-  const isSuspendedPage = pathname === "/suspended";
-  const isWithdrawnPage = pathname === "/withdrawn";
 
   if (!user && !isAuthPage) {
     return NextResponse.redirect(new URL("/login", request.url));

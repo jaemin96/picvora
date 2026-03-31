@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -381,9 +382,9 @@ export default function AdminPage() {
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
                     {/* 아바타 */}
-                    <div className="h-10 w-10 shrink-0 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+                    <div className="relative h-10 w-10 shrink-0 rounded-full bg-muted flex items-center justify-center overflow-hidden">
                       {user.avatar_url ? (
-                        <img src={user.avatar_url} alt="" className="h-full w-full object-cover" />
+                        <Image src={user.avatar_url} alt="" fill className="object-cover" />
                       ) : (
                         <span className="text-sm font-medium text-muted-foreground">
                           {(user.display_name || user.email)?.[0]?.toUpperCase()}

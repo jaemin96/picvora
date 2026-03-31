@@ -110,7 +110,7 @@ export function ImageCropEditor({
     } finally {
       setIsProcessing(false);
     }
-  }, [completedCrop, rotation, onApply]);
+  }, [completedCrop, rotation, onApply, isPhoto]);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background">
