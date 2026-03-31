@@ -86,7 +86,7 @@ export function SearchBar({ onOpenChange }: { onOpenChange?: (open: boolean) => 
   const showDropdown = open && query.trim().length > 0;
 
   return (
-    <div className="relative" ref={containerRef}>
+    <div className={`relative ${open ? "flex-1 sm:flex-none" : ""}`} ref={containerRef}>
       {/* 검색 아이콘 버튼 (항상 렌더링, 레이아웃 기준 — 열리면 투명하게 숨김) */}
       <button
         onClick={() => setOpenWithCallback(true)}
@@ -100,12 +100,11 @@ export function SearchBar({ onOpenChange }: { onOpenChange?: (open: boolean) => 
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ width: 36, opacity: 0 }}
-            animate={{ width: 220, opacity: 1 }}
-            exit={{ width: 36, opacity: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.18, ease: "easeOut" }}
-            className="absolute right-0 top-0 flex items-center gap-1.5 overflow-hidden rounded-full border border-border bg-muted/60 px-3"
-            style={{ height: 36 }}
+            className="absolute inset-y-0 left-0 right-0 sm:left-auto sm:w-56 flex items-center gap-1.5 overflow-hidden rounded-full border border-border bg-muted/60 px-3"
           >
             <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
             <input

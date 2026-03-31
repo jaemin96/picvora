@@ -30,7 +30,7 @@ export function ChatbotButton() {
               exit={{ rotate: 90, opacity: 0 }}
               transition={{ duration: 0.15 }}
             >
-              <X className="h-5 w-5" />
+              <X className="h-7 w-7" />
             </motion.span>
           ) : (
             <motion.span
@@ -40,7 +40,7 @@ export function ChatbotButton() {
               exit={{ rotate: -90, opacity: 0 }}
               transition={{ duration: 0.15 }}
             >
-              <MessageCircleQuestion className="h-5 w-5" />
+              <MessageCircleQuestion className="h-7 w-7" />
             </motion.span>
           )}
         </AnimatePresence>

@@ -78,11 +78,11 @@ export function AppHeader({ showBack = false, onNewPhoto, showSearch = true, rig
           </Link>
         </div>
 
-        {/* 중앙 여백 */}
-        <div className="flex-1" />
+        {/* 중앙 여백 — 모바일 검색 열리면 숨김 */}
+        <div className={`flex-1 ${searchOpen ? "hidden sm:block" : ""}`} />
 
         {/* 우측: 검색 + 액션 */}
-        <div className="flex items-center gap-1.5">
+        <div className={`flex items-center gap-1.5 ${searchOpen ? "flex-1 sm:flex-none" : ""}`}>
           {showSearch && <SearchBar onOpenChange={setSearchOpen} />}
 
           {onNewPhoto && (
@@ -90,7 +90,7 @@ export function AppHeader({ showBack = false, onNewPhoto, showSearch = true, rig
               {/* 모바일: + 아이콘만 */}
               <button
                 onClick={onNewPhoto}
-                className="flex sm:hidden h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90"
+                className={`${searchOpen ? "hidden" : "flex"} sm:hidden h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90`}
                 aria-label="새 사진"
               >
                 <Plus className="h-4 w-4" />
@@ -106,9 +106,9 @@ export function AppHeader({ showBack = false, onNewPhoto, showSearch = true, rig
             </>
           )}
 
-          {rightAction}
-          {userId && <NotificationBell userId={userId} />}
-          <ThemeToggle />
+          <div className={searchOpen ? "hidden sm:contents" : "contents"}>{rightAction}</div>
+          {userId && <div className={searchOpen ? "hidden sm:block" : ""}><NotificationBell userId={userId} /></div>}
+          <div className={searchOpen ? "hidden sm:block" : ""}><ThemeToggle /></div>
 
           {/* 프로필 버튼 */}
           <div className="relative flex items-center" ref={menuRef}>

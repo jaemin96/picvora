@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { Upload, X, ImagePlus, Check, Share2, Crop, Globe, Users, Lock } from "lucide-react";
+import { Upload, X, Check, Share2, Crop, Globe, Users, Lock, RotateCcw, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -476,23 +476,25 @@ export function UploadFlow({
                     setStep("upload");
                   }}
                   variant="outline"
-                  className="gap-2"
+                  className="gap-2 px-3 sm:px-8"
                   size="lg"
+                  aria-label="다시 선택"
                 >
-                  <X className="h-4 w-4" />
-                  다시 선택
+                  <RotateCcw className="h-4 w-4 shrink-0" />
+                  <span className="hidden sm:inline">다시 선택</span>
                 </Button>
                 <Button
                   onClick={() => setShowCropEditor(true)}
                   variant="outline"
-                  className="gap-2"
+                  className="gap-2 px-3 sm:px-8"
                   size="lg"
+                  aria-label="편집"
                 >
-                  <Crop className="h-4 w-4" />
-                  편집
+                  <Crop className="h-4 w-4 shrink-0" />
+                  <span className="hidden sm:inline">편집</span>
                 </Button>
                 <Button onClick={handleAnalyze} className="flex-1 gap-2" size="lg">
-                  <ImagePlus className="h-4 w-4" />
+                  <Sparkles className="h-4 w-4 shrink-0" />
                   AI로 분석하기
                 </Button>
               </div>
