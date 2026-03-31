@@ -35,31 +35,93 @@ export async function middleware(request: NextRequest) {
 
   const isAuthPage = pathname === "/login" || pathname === "/signup";
   const isPendingPage = pathname === "/pending";
+  const isSuspendedPage = pathname === "/suspended";
+  const isWithdrawnPage = pathname === "/withdrawn";
 
   if (!user && !isAuthPage) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (user && isAuthPage) {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
-
-  // 로그인된 사용자: 승인 여부 확인
-  if (user && !isAuthPage && !isPendingPage) {
+  if (user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("is_approved, role")
+      .select("is_approved, role, account_status, suspended_until")
       .eq("id", user.id)
       .single();
 
     // 관리자는 항상 통과
     if (profile?.role === "admin") {
-      // 관리자가 아닌데 /admin 접근 시 차단 (여기서는 관리자이므로 통과)
+      // 관리자가 로그인 페이지 접근 시 홈으로
+      if (isAuthPage) return NextResponse.redirect(new URL("/", request.url));
       return response;
     }
 
-    // 미승인 사용자는 /pending으로 리다이렉트
-    if (!profile?.is_approved) {
+    // 정지 계정 처리
+    if (profile?.account_status === "suspended") {
+      // 기간제 정지: 만료 여부 확인
+      if (profile.suspended_until && new Date(profile.suspended_until) < new Date()) {
+        // 정지 기간 만료 → 자동 해제 후 정상 진행
+        await supabase
+          .from("profiles")
+          .update({ account_status: "active", suspended_until: null, suspend_reason: null })
+          .eq("id", user.id);
+      } else {
+        // 아직 정지 중 — 로그인 페이지(reason=suspended)만 허용, 나머지는 강제 로그아웃
+        if (!isAuthPage) {
+          const until = profile.suspended_until
+            ? `&until=${encodeURIComponent(profile.suspended_until)}`
+            : "";
+          const redirectRes = NextResponse.redirect(
+            new URL(`/login?reason=suspended${until}`, request.url)
+          );
+          // 세션 쿠키 만료 처리
+          request.cookies.getAll().forEach(({ name }) => {
+            if (name.startsWith("sb-")) {
+              redirectRes.cookies.set(name, "", { maxAge: 0, path: "/" });
+            }
+          });
+          return redirectRes;
+        }
+        // isAuthPage이면 그냥 통과 (클라이언트에서 signOut 처리)
+        return response;
+      }
+    }
+
+    // 탈퇴 계정 처리
+    if (profile?.account_status === "withdrawn") {
+      if (!isAuthPage) {
+        const redirectRes = NextResponse.redirect(new URL("/login?reason=withdrawn", request.url));
+        request.cookies.getAll().forEach(({ name }) => {
+          if (name.startsWith("sb-")) {
+            redirectRes.cookies.set(name, "", { maxAge: 0, path: "/" });
+          }
+        });
+        return redirectRes;
+      }
+      return response;
+    }
+
+    // 휴면 계정 처리
+    if (profile?.account_status === "dormant") {
+      if (!isAuthPage) {
+        const redirectRes = NextResponse.redirect(new URL("/login?reason=dormant", request.url));
+        request.cookies.getAll().forEach(({ name }) => {
+          if (name.startsWith("sb-")) {
+            redirectRes.cookies.set(name, "", { maxAge: 0, path: "/" });
+          }
+        });
+        return redirectRes;
+      }
+      return response;
+    }
+
+    // 정상 유저가 로그인 페이지 접근 시 홈으로
+    if (isAuthPage) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+
+    // 미승인 사용자
+    if (!isPendingPage && !profile?.is_approved) {
       return NextResponse.redirect(new URL("/pending", request.url));
     }
 

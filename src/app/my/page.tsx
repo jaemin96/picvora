@@ -20,6 +20,7 @@ import {
   Globe,
   Users,
   Lock,
+  UserX,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -257,6 +258,33 @@ function MyPageContent() {
 
   const [cardActionLoading, setCardActionLoading] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  // 회원 탈퇴
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [withdrawPassword, setWithdrawPassword] = useState("");
+  const [withdrawLoading, setWithdrawLoading] = useState(false);
+  const [withdrawError, setWithdrawError] = useState<string | null>(null);
+
+  const handleWithdraw = async () => {
+    if (!withdrawPassword) { setWithdrawError("비밀번호를 입력해주세요"); return; }
+    setWithdrawLoading(true);
+    setWithdrawError(null);
+    try {
+      const res = await fetch("/api/account/withdraw", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: withdrawPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setWithdrawError(data.error ?? "탈퇴에 실패했습니다"); return; }
+      toast.success("탈퇴가 완료되었습니다");
+      router.push("/login?reason=withdrawn");
+    } catch {
+      setWithdrawError("탈퇴에 실패했습니다");
+    } finally {
+      setWithdrawLoading(false);
+    }
+  };
 
   const handleSoftDelete = async (shareId: string) => {
     setCardActionLoading(shareId);
@@ -520,6 +548,25 @@ function MyPageContent() {
         </div>
       </div>
 
+      {/* 계정 관리 섹션 */}
+      <div className="mx-auto w-full max-w-2xl px-4 pb-2">
+        <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">회원 탈퇴</p>
+              <p className="text-xs text-muted-foreground mt-0.5">탈퇴 후 30일간 복구 신청 가능합니다</p>
+            </div>
+            <button
+              onClick={() => setShowWithdrawModal(true)}
+              className="flex items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors"
+            >
+              <UserX className="h-3.5 w-3.5" />
+              탈퇴하기
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* 탭 */}
       <div className="sticky top-[57px] z-10 border-b border-border bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-2xl gap-0 px-4 pb-0">
@@ -723,6 +770,48 @@ function MyPageContent() {
           }))
         }
       />
+    )}
+
+    {/* 회원 탈퇴 확인 모달 */}
+    {showWithdrawModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div className="mx-4 w-full max-w-sm rounded-2xl border border-border bg-background p-6 shadow-xl">
+          <h3 className="text-lg font-semibold">정말 탈퇴하시겠어요?</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            탈퇴 후 30일 이내에 복구를 신청할 수 있습니다. 30일 이후에는 모든 데이터가 영구적으로 삭제됩니다.
+          </p>
+          <div className="mt-4 space-y-2">
+            <label className="text-xs font-medium text-muted-foreground">비밀번호 확인</label>
+            <input
+              type="password"
+              value={withdrawPassword}
+              onChange={(e) => { setWithdrawPassword(e.target.value); setWithdrawError(null); }}
+              placeholder="현재 비밀번호를 입력하세요"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-destructive focus:ring-1 focus:ring-destructive transition-colors"
+            />
+            {withdrawError && (
+              <p className="text-xs text-destructive">{withdrawError}</p>
+            )}
+          </div>
+          <div className="mt-5 flex gap-2 justify-end">
+            <button
+              onClick={() => { setShowWithdrawModal(false); setWithdrawPassword(""); setWithdrawError(null); }}
+              disabled={withdrawLoading}
+              className="rounded-lg px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
+            >
+              취소
+            </button>
+            <button
+              onClick={handleWithdraw}
+              disabled={withdrawLoading || !withdrawPassword}
+              className="flex items-center gap-1.5 rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 transition-colors disabled:opacity-50"
+            >
+              {withdrawLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+              탈퇴하기
+            </button>
+          </div>
+        </div>
+      </div>
     )}
 
     {/* 완전삭제 확인 모달 */}
