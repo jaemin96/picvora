@@ -18,9 +18,14 @@ type UserResult = {
   avatar_url: string | null;
 };
 
-export function SearchBar() {
+export function SearchBar({ onOpenChange }: { onOpenChange?: (open: boolean) => void } = {}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+
+  const setOpenWithCallback = (val: boolean) => {
+    setOpen(val);
+    onOpenChange?.(val);
+  };
   const [query, setQuery] = useState("");
   const [cards, setCards] = useState<CardResult[]>([]);
   const [users, setUsers] = useState<UserResult[]>([]);
@@ -69,7 +74,7 @@ export function SearchBar() {
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
+        setOpenWithCallback(false);
       }
     };
     document.addEventListener("mousedown", handleClick);
@@ -83,7 +88,7 @@ export function SearchBar() {
     <div className="relative" ref={containerRef}>
       {/* 검색 아이콘 버튼 (항상 렌더링, 레이아웃 기준 — 열리면 투명하게 숨김) */}
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => setOpenWithCallback(true)}
         className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-muted ${open ? "pointer-events-none opacity-0" : ""}`}
         aria-label="검색"
       >
@@ -126,7 +131,7 @@ export function SearchBar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 top-full mt-2 w-72 overflow-hidden rounded-2xl border border-border bg-background shadow-xl"
+            className="fixed left-4 right-4 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-72 overflow-hidden rounded-2xl border border-border bg-background shadow-xl z-50"
           >
             {loading && (
               <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">

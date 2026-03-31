@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, Camera, Save } from "lucide-react";
+import { Save } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -11,6 +11,7 @@ import {
   Sparkles, Gift, Plus, X, Pencil, Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AppHeader } from "@/components/features/app-header";
 import type { PhotoAnalysis, NearbyPlace, Tag, ExifData } from "@/types";
 import dynamic from "next/dynamic";
 
@@ -106,26 +107,15 @@ export function EditCardClient({ card }: { card: CardRow }) {
 
   return (
     <main className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
-            <Link href={`/cards/${card.share_id}`}
-              className="rounded-full p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-            <div className="flex items-center gap-2">
-              <div className="rounded-lg bg-primary/10 p-1">
-                <Camera className="h-4 w-4 text-primary" />
-              </div>
-              <span className="font-semibold">카드 수정</span>
-            </div>
-          </div>
+      <AppHeader
+        showBack
+        rightAction={
           <Button onClick={handleSave} disabled={saving} size="sm" className="gap-1.5">
             <Save className="h-4 w-4" />
             {saving ? "저장 중..." : "저장"}
           </Button>
-        </div>
-      </header>
+        }
+      />
 
       <div className="mx-auto w-full max-w-lg px-4 py-6">
         <motion.div variants={container} initial="hidden" animate="show" className="space-y-4">

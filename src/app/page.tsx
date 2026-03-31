@@ -1,20 +1,15 @@
 "use client";
 
-import { Plus, ImageIcon, LogOut, User, Loader2, Shield } from "lucide-react";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { ThemedLogo } from "@/components/ui/themed-logo";
-import { useState, useEffect, useCallback, useRef, Suspense } from "react";
+import { Plus, ImageIcon, Loader2 } from "lucide-react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { UploadFlow } from "@/components/features/upload-flow";
 import { FeedCard } from "@/components/features/feed-card";
 import { LocationFilter, type LocationSelection } from "@/components/features/location-filter";
-import { NotificationBell } from "@/components/features/notification-bell";
-import { SearchBar } from "@/components/features/search-bar";
-import { createClient } from "@/lib/supabase/client";
+import { AppHeader } from "@/components/features/app-header";
 import { useInfiniteCards } from "@/hooks/use-infinite-cards";
-import Link from "next/link";
 
 type CardSummary = {
   share_id: string;
@@ -41,12 +36,7 @@ function HomeContent() {
 
   const [filters, setFilters] = useState<LocationSelection[]>(initialFilters);
   const [feed, setFeed] = useState<"all" | "following">(initialFeed);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [displayName, setDisplayName] = useState<string>("");
   const [userId, setUserId] = useState<string | null>(null);
-  const [showMenu, setShowMenu] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   const fetcher = useCallback(
     async (cursor: string | null, limit: number) => {
@@ -85,29 +75,12 @@ function HomeContent() {
     setHiddenIds((prev) => new Set([...Array.from(prev), shareId]));
   };
 
-  // Fetch user profile for avatar
+  // Fetch user id for card ownership
   useEffect(() => {
     fetch("/api/profile")
       .then((res) => res.json())
-      .then((data) => {
-        if (data.avatar_url) setAvatarUrl(data.avatar_url);
-        if (data.display_name) setDisplayName(data.display_name);
-        else if (data.email) setDisplayName(data.email);
-        if (data.id) setUserId(data.id);
-        if (data.role === "admin") setIsAdmin(true);
-      })
+      .then((data) => { if (data.id) setUserId(data.id); })
       .catch(() => {});
-  }, []);
-
-  // Close menu on outside click
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setShowMenu(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
   const updateUrl = (newFilters: LocationSelection[], newFeed: "all" | "following") => {
@@ -133,88 +106,9 @@ function HomeContent() {
     reset();
   };
 
-  const handleLogout = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
-  };
-
   return (
     <main className="flex min-h-screen flex-col">
-      {/* 헤더 */}
-      <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-3">
-          <div className="flex items-center">
-            <ThemedLogo width={120} height={36} />
-          </div>
-          <div className="flex items-center gap-2.5">
-            <SearchBar />
-            <button
-              onClick={() => setShowUpload(true)}
-              className="flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              <Plus className="h-4 w-4" />
-              새 사진
-            </button>
-            {userId && <NotificationBell userId={userId} />}
-            <ThemeToggle />
-            <div className="relative flex items-center" ref={menuRef}>
-              <button
-                onClick={() => setShowMenu(!showMenu)}
-                className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border-2 border-border transition-all hover:border-primary/60"
-              >
-                {avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={avatarUrl}
-                    alt="프로필"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-violet-500 text-white text-sm font-bold">
-                    {(displayName || "U")[0].toUpperCase()}
-                  </div>
-                )}
-              </button>
-              {showMenu && (
-                <div className="absolute right-0 top-full mt-2 w-40 overflow-hidden rounded-xl border border-border bg-background shadow-lg">
-                  {isAdmin && (
-                    <>
-                      <Link
-                        href="/admin"
-                        onClick={() => setShowMenu(false)}
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
-                      >
-                        <Shield className="h-4 w-4 text-muted-foreground" />
-                        관리자 페이지
-                      </Link>
-                      <div className="border-b border-border" />
-                    </>
-                  )}
-                  <Link
-                    href="/my"
-                    onClick={() => setShowMenu(false)}
-                    className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
-                  >
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    마이페이지
-                  </Link>
-                  <button
-                    onClick={() => {
-                      setShowMenu(false);
-                      handleLogout();
-                    }}
-                    className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-muted transition-colors"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    로그아웃
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      <AppHeader onNewPhoto={() => setShowUpload(true)} />
 
       {/* 탭 바 */}
       <div className="sticky top-[57px] z-10 border-b border-border bg-background/80 backdrop-blur-sm">

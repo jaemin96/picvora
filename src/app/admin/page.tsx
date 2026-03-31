@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   Check,
   X,
   Users,
@@ -20,6 +18,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AppHeader } from "@/components/features/app-header";
 import { toast } from "sonner";
 import type { SupportTicket } from "@/types";
 
@@ -468,7 +467,6 @@ function SupportPanel() {
 }
 
 export default function AdminPage() {
-  const router = useRouter();
   const [adminTab, setAdminTab] = useState<AdminTab>("users");
 
   // users tab state
@@ -547,15 +545,7 @@ export default function AdminPage() {
 
   return (
     <main className="min-h-screen bg-background">
-      {/* 헤더 */}
-      <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="mx-auto flex h-14 max-w-2xl items-center gap-3 px-4">
-          <button onClick={() => router.push("/")} className="rounded-lg p-1.5 hover:bg-muted">
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <h1 className="text-lg font-semibold">관리자</h1>
-        </div>
-      </header>
+      <AppHeader showBack />
 
       <div className="mx-auto max-w-2xl px-4 py-6 space-y-6">
         {/* 상위 탭 */}

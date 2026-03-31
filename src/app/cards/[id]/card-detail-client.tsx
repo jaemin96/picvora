@@ -3,8 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  ArrowLeft,
-  Camera,
   Pencil,
   Trash2,
   RotateCcw,
@@ -16,12 +14,14 @@ import {
   Users,
   Lock,
   Download,
+  Link2,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { ShareView } from "@/components/features/share-view";
 import { LikeButton } from "@/components/features/like-button";
 import { CommentSection } from "@/components/features/comment-section";
+import { AppHeader } from "@/components/features/app-header";
 import { formatCount } from "@/lib/format";
 import type { ExifData, PhotoAnalysis, Visibility } from "@/types";
 
@@ -223,78 +223,7 @@ export function CardDetailClient({
 
   return (
     <main className="flex min-h-screen flex-col">
-      {/* 헤더 */}
-      <header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.back()}
-              className="rounded-full p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <div className="flex items-center gap-2">
-              <div className="rounded-lg bg-primary/10 p-1">
-                <Camera className="h-4 w-4 text-primary" />
-              </div>
-              <span className="font-semibold">Picvora</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* 조회수 */}
-            <div className="flex items-center gap-1.5 rounded-full border border-border p-2 text-muted-foreground">
-              <Eye className="h-4 w-4" />
-              <span className="text-xs font-medium">{formatCount(viewCount)}</span>
-            </div>
-            {/* 댓글 토글 버튼 */}
-            <button
-              onClick={() => setShowComments((v) => !v)}
-              className={`flex items-center gap-1.5 rounded-full border p-2 transition-colors ${
-                showComments
-                  ? "border-primary/40 bg-primary/10 text-primary"
-                  : "border-border text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
-            >
-              <MessageCircle className="h-4 w-4" />
-              {liveCommentCount > 0 && (
-                <span className="text-xs font-medium">{liveCommentCount}</span>
-              )}
-            </button>
-            {/* 다운로드 */}
-            {card.image_url && (
-              <button
-                onClick={handleDownload}
-                className="flex items-center gap-1.5 rounded-full border border-border p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                title="원본 이미지 다운로드"
-              >
-                <Download className="h-4 w-4" />
-              </button>
-            )}
-            {/* 좋아요 */}
-            {!isDeleted && <LikeButton cardId={card.share_id} size="lg" />}
-            {/* 수정 (작성자, 삭제되지 않은 경우) */}
-            {isOwner && !isDeleted && (
-              <Link
-                href={`/cards/${card.share_id}/edit`}
-                className="flex items-center gap-1.5 rounded-full border border-border p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-              >
-                <Pencil className="h-4 w-4" />
-                <span className="hidden sm:inline text-sm font-medium">수정</span>
-              </Link>
-            )}
-            {/* 삭제 (작성자, 삭제되지 않은 경우) */}
-            {isOwner && !isDeleted && (
-              <button
-                onClick={() => setConfirmAction("soft-delete")}
-                className="flex items-center gap-1.5 rounded-full border border-red-200 p-2 text-red-500 hover:bg-red-50 dark:border-red-500/30 dark:hover:bg-red-500/10 transition-colors"
-              >
-                <Trash2 className="h-4 w-4" />
-                <span className="hidden sm:inline text-sm font-medium">삭제</span>
-              </button>
-            )}
-          </div>
-        </div>
-      </header>
+      <AppHeader showBack />
 
       {/* 삭제 대기 배너 */}
       {isDeleted && isOwner && (
@@ -328,47 +257,124 @@ export function CardDetailClient({
 
       {/* 카드 본문 */}
       <div className={`mx-auto w-full max-w-lg px-4 py-6 ${isDeleted ? "opacity-60" : ""}`}>
-        {/* 작성자 + 공개범위 */}
-        <div className="mb-4 flex items-center justify-between">
-          <AuthorBadge userId={card.user_id} profile={authorProfile} isMe={isOwner} />
-          {isOwner ? (
-            <div className="relative">
-              <button
-                onClick={() => setShowVisibilityMenu((v) => !v)}
-                className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors"
-              >
-                {(() => { const m = VISIBILITY_META[currentVisibility]; const Icon = m.icon; return <><Icon className="h-3.5 w-3.5" />{m.label}</>; })()}
-              </button>
-              {showVisibilityMenu && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowVisibilityMenu(false)} />
-                  <div className="absolute right-0 top-full z-50 mt-1 w-40 rounded-xl border border-border bg-background py-1 shadow-lg">
-                    {(["public", "followers", "private"] as Visibility[]).map((v) => {
-                      const m = VISIBILITY_META[v];
-                      const Icon = m.icon;
-                      return (
-                        <button
-                          key={v}
-                          onClick={() => handleVisibilityChange(v)}
-                          className={`flex w-full items-center gap-2 px-3 py-2 text-xs transition-colors hover:bg-muted ${
-                            currentVisibility === v ? "text-primary font-semibold" : "text-foreground"
-                          }`}
-                        >
-                          <Icon className="h-3.5 w-3.5" />
-                          {m.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
+        {/* 행 1: 작성자 + 조회수 / 공개범위 + 수정 + 삭제 */}
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AuthorBadge userId={card.user_id} profile={authorProfile} isMe={isOwner} />
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Eye className="h-3.5 w-3.5" />
+              <span className="text-xs font-medium">{formatCount(viewCount)}</span>
             </div>
-          ) : currentVisibility !== "public" ? (
-            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              {(() => { const m = VISIBILITY_META[currentVisibility]; const Icon = m.icon; return <><Icon className="h-3.5 w-3.5" />{m.label}</>; })()}
-            </span>
-          ) : null}
+          </div>
+          <div className="flex items-center gap-1.5">
+            {/* 공개범위 */}
+            {isOwner ? (
+              <div className="relative">
+                <button
+                  onClick={() => setShowVisibilityMenu((v) => !v)}
+                  className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors"
+                >
+                  {(() => { const m = VISIBILITY_META[currentVisibility]; const Icon = m.icon; return <><Icon className="h-3.5 w-3.5" />{m.label}</>; })()}
+                </button>
+                {showVisibilityMenu && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowVisibilityMenu(false)} />
+                    <div className="absolute right-0 top-full z-50 mt-1 w-40 rounded-xl border border-border bg-background py-1 shadow-lg">
+                      {(["public", "followers", "private"] as Visibility[]).map((v) => {
+                        const m = VISIBILITY_META[v];
+                        const Icon = m.icon;
+                        return (
+                          <button
+                            key={v}
+                            onClick={() => handleVisibilityChange(v)}
+                            className={`flex w-full items-center gap-2 px-3 py-2 text-xs transition-colors hover:bg-muted ${
+                              currentVisibility === v ? "text-primary font-semibold" : "text-foreground"
+                            }`}
+                          >
+                            <Icon className="h-3.5 w-3.5" />
+                            {m.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : currentVisibility !== "public" ? (
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                {(() => { const m = VISIBILITY_META[currentVisibility]; const Icon = m.icon; return <><Icon className="h-3.5 w-3.5" />{m.label}</>; })()}
+              </span>
+            ) : null}
+            {/* 수정 아이콘 */}
+            {isOwner && !isDeleted && (
+              <Link
+                href={`/cards/${card.share_id}/edit`}
+                className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                title="수정"
+              >
+                <Pencil className="h-4 w-4" />
+              </Link>
+            )}
+            {/* 삭제 아이콘 */}
+            {isOwner && !isDeleted && (
+              <button
+                onClick={() => setConfirmAction("soft-delete")}
+                className="rounded-full p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                title="삭제"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* 행 2: 좌측 — 뷰카운트·좋아요 / 우측 — 댓글·링크공유·다운로드 */}
+        <div className="mb-4 flex items-center justify-between">
+          {/* 좌측 */}
+          <div className="flex items-center gap-2">
+            {!isDeleted && <LikeButton cardId={card.share_id} size="lg" />}
+          </div>
+          {/* 우측 */}
+          <div className="flex items-center gap-1.5">
+            {/* 댓글 */}
+            <button
+              onClick={() => setShowComments((v) => !v)}
+              className={`flex items-center gap-1 rounded-full p-2 transition-colors ${
+                showComments
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+              title="댓글"
+            >
+              <MessageCircle className="h-4 w-4" />
+              {liveCommentCount > 0 && (
+                <span className="text-xs font-medium">{liveCommentCount}</span>
+              )}
+            </button>
+            {/* 링크 공유 */}
+            <button
+              onClick={() => {
+                const url = `${window.location.origin}/share/${card.share_id}`;
+                navigator.clipboard.writeText(url).then(() => toast.success("링크가 복사되었습니다"));
+              }}
+              className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              title="링크 복사"
+            >
+              <Link2 className="h-4 w-4" />
+            </button>
+            {/* 다운로드 */}
+            {card.image_url && (
+              <button
+                onClick={handleDownload}
+                className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                title="이미지 다운로드"
+              >
+                <Download className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
         <ShareView card={card} />
       </div>
 

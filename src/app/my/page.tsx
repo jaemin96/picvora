@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
-  ArrowLeft,
   Camera,
   ImageIcon,
   Heart,
@@ -27,6 +26,7 @@ import { toast } from "sonner";
 import { ImageCropEditor } from "@/components/features/image-crop-editor";
 import { FollowListModal } from "@/components/features/follow-list-modal";
 import { LocationFilter, type LocationSelection } from "@/components/features/location-filter";
+import { AppHeader } from "@/components/features/app-header";
 import { useInfiniteCards } from "@/hooks/use-infinite-cards";
 
 import type { Visibility } from "@/types";
@@ -359,22 +359,7 @@ function MyPageContent() {
       />
     )}
     <main className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-3">
-          <button
-            onClick={() => router.back()}
-            className="rounded-full p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="rounded-lg bg-primary/10 p-1">
-              <Camera className="h-4 w-4 text-primary" />
-            </div>
-            <span className="font-semibold">마이페이지</span>
-          </div>
-        </div>
-      </header>
+      <AppHeader showBack />
 
       {/* 프로필 섹션 */}
       <div className="mx-auto w-full max-w-2xl px-4 py-6">

@@ -131,7 +131,7 @@ export function NotificationBell({ userId }: { userId: string }) {
 
       {/* 알림 패널 */}
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-2xl border border-border bg-background shadow-xl">
+        <div className="fixed left-4 right-4 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80 z-50 overflow-hidden rounded-2xl border border-border bg-background shadow-xl">
           {/* 헤더 */}
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <span className="text-sm font-semibold">알림</span>

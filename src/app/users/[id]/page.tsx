@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, ImageIcon, Eye, MessageCircle, Loader2 } from "lucide-react";
+import { ImageIcon, Eye, MessageCircle, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { FollowButton } from "@/components/features/follow-button";
 import { FollowListModal } from "@/components/features/follow-list-modal";
+import { AppHeader } from "@/components/features/app-header";
 import { useInfiniteCards } from "@/hooks/use-infinite-cards";
 
 type CardSummary = {
@@ -128,18 +129,7 @@ export default function UserProfilePage() {
 
   return (
     <main className="flex min-h-screen flex-col">
-      {/* 헤더 */}
-      <header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-3">
-          <button
-            onClick={() => router.back()}
-            className="rounded-full p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <span className="font-semibold truncate">{loading ? "..." : displayName}</span>
-        </div>
-      </header>
+      <AppHeader showBack />
 
       <div className="mx-auto w-full max-w-2xl px-4 py-6">
         {/* 프로필 섹션 */}
