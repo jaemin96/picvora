@@ -1,8 +1,8 @@
 "use client";
 
 import { Clock, LogOut } from "lucide-react";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { ThemedLogo } from "@/components/ui/themed-logo";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
@@ -20,8 +20,7 @@ export default function PendingPage() {
     <main className="flex min-h-screen flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-6 text-center">
         <div className="flex flex-col items-center gap-3">
-          <Image src="/picvora-logo-dark.svg" alt="Picvora" width={140} height={42} className="hidden dark:block" priority />
-          <Image src="/picvora-logo-light.svg" alt="Picvora" width={140} height={42} className="block dark:hidden" priority />
+          <ThemedLogo />
         </div>
 
         <div className="flex flex-col items-center gap-3 rounded-lg border border-border bg-muted/50 p-6">

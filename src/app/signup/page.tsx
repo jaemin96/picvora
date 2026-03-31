@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { ThemedLogo } from "@/components/ui/themed-logo";
 import { createClient } from "@/lib/supabase/client";
 
 export default function SignupPage() {
@@ -46,8 +46,7 @@ export default function SignupPage() {
       <main className="flex min-h-screen flex-col items-center justify-center px-4">
         <div className="w-full max-w-sm space-y-6 text-center">
           <div className="flex flex-col items-center gap-3">
-            <Image src="/picvora-logo-dark.svg" alt="Picvora" width={140} height={42} className="hidden dark:block" priority />
-            <Image src="/picvora-logo-light.svg" alt="Picvora" width={140} height={42} className="block dark:hidden" priority />
+            <ThemedLogo />
             <h1 className="text-2xl font-bold tracking-tight">이메일을 확인하세요</h1>
           </div>
           <p className="text-sm text-muted-foreground">
@@ -67,8 +66,7 @@ export default function SignupPage() {
     <main className="flex min-h-screen flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-8">
         <div className="flex flex-col items-center gap-3">
-          <Image src="/picvora-logo-dark.svg" alt="Picvora" width={140} height={42} className="hidden dark:block" priority />
-          <Image src="/picvora-logo-light.svg" alt="Picvora" width={140} height={42} className="block dark:hidden" priority />
+          <ThemedLogo />
           <p className="text-sm text-muted-foreground">새 계정을 만들어 시작하세요</p>
         </div>
 

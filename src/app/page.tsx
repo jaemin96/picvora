@@ -1,8 +1,8 @@
 "use client";
 
 import { Plus, ImageIcon, LogOut, User, Loader2, Shield } from "lucide-react";
-import Image from "next/image";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { ThemedLogo } from "@/components/ui/themed-logo";
 import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -145,22 +145,7 @@ function HomeContent() {
       <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-3">
           <div className="flex items-center">
-            <Image
-              src="/picvora-logo-dark.svg"
-              alt="Picvora"
-              width={120}
-              height={36}
-              className="hidden dark:block"
-              priority
-            />
-            <Image
-              src="/picvora-logo-light.svg"
-              alt="Picvora"
-              width={120}
-              height={36}
-              className="block dark:hidden"
-              priority
-            />
+            <ThemedLogo width={120} height={36} />
           </div>
           <div className="flex items-center gap-2.5">
             <SearchBar />
