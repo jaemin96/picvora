@@ -3,6 +3,12 @@ import { createServerClient } from "@supabase/ssr";
 
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next({ request });
+  const { pathname } = request.nextUrl;
+
+  // Let public/static asset requests bypass auth redirects.
+  if (/\.[^/]+$/.test(pathname)) {
+    return response;
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,8 +31,6 @@ export async function middleware(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  const { pathname } = request.nextUrl;
 
   // /user/:id → /users/:id 리다이렉트
   if (/^\/user\//.test(pathname)) {
