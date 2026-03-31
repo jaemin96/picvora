@@ -71,3 +71,15 @@ export type PhotoCard = {
   visibility: Visibility;
   createdAt: string;
 };
+
+export type SupportTicket = {
+  id: string;
+  user_id: string | null;
+  email: string;
+  name: string;
+  message: string;
+  status: "open" | "answered" | "closed";
+  admin_reply: string | null;
+  created_at: string;
+  replied_at: string | null;
+};

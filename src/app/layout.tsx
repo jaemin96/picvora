@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { Providers } from "@/lib/providers";
 import { Toaster } from "sonner";
+import { ChatbotButton } from "@/components/features/chatbot-button";
 import "./globals.css";
 
 const inter = Inter({
@@ -29,7 +30,10 @@ export default function RootLayout({
           inter.variable
         )}
       >
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <ChatbotButton />
+        </Providers>
         <Toaster position="bottom-center" richColors />
       </body>
     </html>

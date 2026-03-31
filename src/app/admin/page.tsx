@@ -16,9 +16,12 @@ import {
   RotateCcw,
   UserX,
   ChevronDown,
+  MessageSquare,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import type { SupportTicket } from "@/types";
 
 type AccountStatus = "active" | "suspended" | "dormant" | "withdrawn";
 
@@ -38,6 +41,8 @@ type ManagedUser = {
 };
 
 type Filter = "pending" | "all" | "suspended" | "dormant" | "withdrawn";
+type AdminTab = "users" | "support";
+type SupportFilter = "open" | "answered" | "closed" | "all";
 
 const SUSPEND_OPTIONS = [
   { label: "1일", days: 1 },
@@ -166,7 +171,6 @@ function UserActions({
 
   if (user.role === "admin") return null;
 
-  // 승인 대기
   if (!user.is_approved && user.account_status === "active") {
     return (
       <>
@@ -191,7 +195,6 @@ function UserActions({
     );
   }
 
-  // 정지 상태
   if (user.account_status === "suspended") {
     return (
       <Button
@@ -207,7 +210,6 @@ function UserActions({
     );
   }
 
-  // 휴면/탈퇴 상태
   if (user.account_status === "dormant" || user.account_status === "withdrawn") {
     return (
       <Button
@@ -223,7 +225,6 @@ function UserActions({
     );
   }
 
-  // 활성 사용자: 정지 / 휴면 / 탈퇴처리
   return (
     <>
       <SuspendDropdown userId={user.id} onSuspend={onSuspend} disabled={isLoading} />
@@ -259,8 +260,218 @@ const FILTER_TABS: { key: Filter; label: string; icon: React.ReactNode }[] = [
   { key: "withdrawn", label: "탈퇴", icon: <UserX className="h-4 w-4" /> },
 ];
 
+const SUPPORT_FILTER_TABS: { key: SupportFilter; label: string }[] = [
+  { key: "open", label: "미처리" },
+  { key: "answered", label: "답변완료" },
+  { key: "closed", label: "종료" },
+  { key: "all", label: "전체" },
+];
+
+function SupportStatusBadge({ status }: { status: SupportTicket["status"] }) {
+  if (status === "open") {
+    return (
+      <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-600">
+        미처리
+      </span>
+    );
+  }
+  if (status === "answered") {
+    return (
+      <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600">
+        답변완료
+      </span>
+    );
+  }
+  return (
+    <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+      종료
+    </span>
+  );
+}
+
+function SupportPanel() {
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<SupportFilter>("open");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [replies, setReplies] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState<string | null>(null);
+
+  const fetchTickets = async (f: SupportFilter) => {
+    setLoading(true);
+    const res = await fetch(`/api/admin/support?status=${f}`);
+    if (res.ok) {
+      setTickets(await res.json());
+    } else {
+      toast.error("문의 목록을 불러올 수 없습니다");
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchTickets(filter);
+  }, [filter]);
+
+  const handleReply = async (ticket: SupportTicket, newStatus?: SupportTicket["status"]) => {
+    const reply = replies[ticket.id] ?? ticket.admin_reply ?? "";
+    setSubmitting(ticket.id);
+
+    const res = await fetch("/api/admin/support", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ticketId: ticket.id,
+        admin_reply: reply || undefined,
+        status: newStatus,
+      }),
+    });
+
+    setSubmitting(null);
+
+    if (res.ok) {
+      toast.success("업데이트 완료");
+      fetchTickets(filter);
+      setExpandedId(null);
+    } else {
+      const data = await res.json();
+      toast.error(data.error ?? "실패");
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* 상태 필터 */}
+      <div className="flex gap-2 flex-wrap">
+        {SUPPORT_FILTER_TABS.map((tab) => (
+          <Button
+            key={tab.key}
+            variant={filter === tab.key ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilter(tab.key)}
+          >
+            {tab.label}
+          </Button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : tickets.length === 0 ? (
+        <div className="rounded-lg border border-border bg-muted/50 p-8 text-center">
+          <p className="text-sm text-muted-foreground">문의가 없습니다</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {tickets.map((ticket) => {
+            const isExpanded = expandedId === ticket.id;
+            const replyText = replies[ticket.id] ?? ticket.admin_reply ?? "";
+            return (
+              <div
+                key={ticket.id}
+                className="rounded-lg border border-border bg-card overflow-hidden"
+              >
+                {/* 카드 헤더 */}
+                <button
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/50 transition-colors"
+                  onClick={() => setExpandedId(isExpanded ? null : ticket.id)}
+                >
+                  <div className="flex-1 min-w-0 space-y-0.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium">{ticket.name}</span>
+                      <SupportStatusBadge status={ticket.status} />
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">{ticket.email}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(ticket.created_at).toLocaleDateString("ko-KR", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+                  <ChevronRight
+                    className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
+                  />
+                </button>
+
+                {/* 확장 영역 */}
+                {isExpanded && (
+                  <div className="border-t border-border px-4 py-3 space-y-3 bg-muted/20">
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-1">문의 내용</p>
+                      <p className="text-sm whitespace-pre-wrap rounded-lg bg-background border border-border px-3 py-2">
+                        {ticket.message}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-1">답변</p>
+                      <textarea
+                        value={replyText}
+                        onChange={(e) =>
+                          setReplies((prev) => ({ ...prev, [ticket.id]: e.target.value }))
+                        }
+                        placeholder="답변을 입력해 주세요..."
+                        rows={3}
+                        className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Button
+                        size="sm"
+                        className="h-8 gap-1 px-3 text-xs"
+                        onClick={() => handleReply(ticket)}
+                        disabled={submitting === ticket.id}
+                      >
+                        {submitting === ticket.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : null}
+                        답변 저장
+                      </Button>
+                      {ticket.status !== "closed" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 px-3 text-xs text-muted-foreground"
+                          onClick={() => handleReply(ticket, "closed")}
+                          disabled={submitting === ticket.id}
+                        >
+                          종료 처리
+                        </Button>
+                      )}
+                      {ticket.status === "closed" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 px-3 text-xs"
+                          onClick={() => handleReply(ticket, "open")}
+                          disabled={submitting === ticket.id}
+                        >
+                          재열기
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const router = useRouter();
+  const [adminTab, setAdminTab] = useState<AdminTab>("users");
+
+  // users tab state
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("pending");
@@ -278,8 +489,8 @@ export default function AdminPage() {
   };
 
   useEffect(() => {
-    fetchUsers(filter);
-  }, [filter]);
+    if (adminTab === "users") fetchUsers(filter);
+  }, [filter, adminTab]);
 
   const handleAction = async (userId: string, action: string) => {
     setActionLoading(userId);
@@ -347,94 +558,121 @@ export default function AdminPage() {
       </header>
 
       <div className="mx-auto max-w-2xl px-4 py-6 space-y-6">
-        {/* 필터 탭 */}
-        <div className="flex gap-2 flex-wrap">
-          {FILTER_TABS.map((tab) => (
-            <Button
-              key={tab.key}
-              variant={filter === tab.key ? "default" : "outline"}
-              size="sm"
-              className="gap-1.5"
-              onClick={() => setFilter(tab.key)}
-            >
-              {tab.icon}
-              {tab.label}
-            </Button>
-          ))}
+        {/* 상위 탭 */}
+        <div className="flex gap-2">
+          <Button
+            variant={adminTab === "users" ? "default" : "outline"}
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setAdminTab("users")}
+          >
+            <Users className="h-4 w-4" />
+            사용자 관리
+          </Button>
+          <Button
+            variant={adminTab === "support" ? "default" : "outline"}
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setAdminTab("support")}
+          >
+            <MessageSquare className="h-4 w-4" />
+            문의 관리
+          </Button>
         </div>
 
-        {/* 사용자 목록 */}
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : users.length === 0 ? (
-          <div className="rounded-lg border border-border bg-muted/50 p-8 text-center">
-            <p className="text-sm text-muted-foreground">{emptyMessages[filter]}</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {users.map((user) => (
-              <div
-                key={user.id}
-                className="rounded-lg border border-border bg-card p-4 space-y-3"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    {/* 아바타 */}
-                    <div className="relative h-10 w-10 shrink-0 rounded-full bg-muted flex items-center justify-center overflow-hidden">
-                      {user.avatar_url ? (
-                        <Image src={user.avatar_url} alt="" fill className="object-cover" />
-                      ) : (
-                        <span className="text-sm font-medium text-muted-foreground">
-                          {(user.display_name || user.email)?.[0]?.toUpperCase()}
-                        </span>
-                      )}
+        {/* 사용자 관리 탭 */}
+        {adminTab === "users" && (
+          <>
+            {/* 필터 탭 */}
+            <div className="flex gap-2 flex-wrap">
+              {FILTER_TABS.map((tab) => (
+                <Button
+                  key={tab.key}
+                  variant={filter === tab.key ? "default" : "outline"}
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => setFilter(tab.key)}
+                >
+                  {tab.icon}
+                  {tab.label}
+                </Button>
+              ))}
+            </div>
+
+            {/* 사용자 목록 */}
+            {loading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : users.length === 0 ? (
+              <div className="rounded-lg border border-border bg-muted/50 p-8 text-center">
+                <p className="text-sm text-muted-foreground">{emptyMessages[filter]}</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {users.map((user) => (
+                  <div
+                    key={user.id}
+                    className="rounded-lg border border-border bg-card p-4 space-y-3"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="relative h-10 w-10 shrink-0 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+                          {user.avatar_url ? (
+                            <Image src={user.avatar_url} alt="" fill className="object-cover" />
+                          ) : (
+                            <span className="text-sm font-medium text-muted-foreground">
+                              {(user.display_name || user.email)?.[0]?.toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="truncate text-sm font-medium">
+                              {user.display_name || "이름 없음"}
+                            </p>
+                            <StatusBadge user={user} />
+                          </div>
+                          <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+                          <p className="text-xs text-muted-foreground">
+                            가입: {new Date(user.created_at).toLocaleDateString("ko-KR")}
+                            {user.last_active_at && (
+                              <> · 최근: {new Date(user.last_active_at).toLocaleDateString("ko-KR")}</>
+                            )}
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="truncate text-sm font-medium">
-                          {user.display_name || "이름 없음"}
-                        </p>
-                        <StatusBadge user={user} />
-                      </div>
-                      <p className="truncate text-xs text-muted-foreground">{user.email}</p>
-                      <p className="text-xs text-muted-foreground">
-                        가입: {new Date(user.created_at).toLocaleDateString("ko-KR")}
-                        {user.last_active_at && (
-                          <> · 최근: {new Date(user.last_active_at).toLocaleDateString("ko-KR")}</>
-                        )}
+                    {user.account_status === "suspended" && user.suspend_reason && (
+                      <p className="text-xs text-destructive/80 bg-destructive/5 rounded px-2.5 py-1.5">
+                        사유: {user.suspend_reason}
                       </p>
+                    )}
+                    {user.account_status === "withdrawn" && user.withdrawn_at && (
+                      <p className="text-xs text-muted-foreground">
+                        탈퇴일: {new Date(user.withdrawn_at).toLocaleDateString("ko-KR")}
+                      </p>
+                    )}
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <UserActions
+                        user={user}
+                        actionLoading={actionLoading}
+                        onAction={handleAction}
+                        onSuspend={handleSuspend}
+                      />
                     </div>
                   </div>
-                </div>
-
-                {/* 정지 사유 표시 */}
-                {user.account_status === "suspended" && user.suspend_reason && (
-                  <p className="text-xs text-destructive/80 bg-destructive/5 rounded px-2.5 py-1.5">
-                    사유: {user.suspend_reason}
-                  </p>
-                )}
-                {user.account_status === "withdrawn" && user.withdrawn_at && (
-                  <p className="text-xs text-muted-foreground">
-                    탈퇴일: {new Date(user.withdrawn_at).toLocaleDateString("ko-KR")}
-                  </p>
-                )}
-
-                {/* 액션 버튼 */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <UserActions
-                    user={user}
-                    actionLoading={actionLoading}
-                    onAction={handleAction}
-                    onSuspend={handleSuspend}
-                  />
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
+
+        {/* 문의 관리 탭 */}
+        {adminTab === "support" && <SupportPanel />}
       </div>
     </main>
   );
