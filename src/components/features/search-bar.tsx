@@ -79,6 +79,7 @@ export function SearchBar({ onOpenChange }: { onOpenChange?: (open: boolean) => 
     };
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const hasResults = cards.length > 0 || users.length > 0;

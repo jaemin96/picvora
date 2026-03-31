@@ -12,6 +12,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://picvora.vercel.app"),
   title: {
     default: "Picvora - 당신의 찰나가 누군가의 경험으로 이어지도록",
     template: "%s | Picvora",

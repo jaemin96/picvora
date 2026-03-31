@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Save } from "lucide-react";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   MapPin, Utensils, Coffee, Landmark, Star, Navigation,
