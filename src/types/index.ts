@@ -43,6 +43,7 @@ export type PhotoAnalysis = {
   specialties: string[];
   cameraInfo?: string;
   shootingTips?: string;
+  memo?: { title: string; content: string } | null;
 };
 
 export type AnalyzeResponse = {
