@@ -1,6 +1,7 @@
 export type ExifData = {
   make?: string;
   model?: string;
+  software?: string;
   latitude?: number;
   longitude?: number;
   dateTime?: string;
@@ -46,6 +47,8 @@ export type PhotoAnalysis = {
   nearbyPlaces: NearbyPlace[];
   specialties: string[];
   directions?: DirectionInfo;
+  cameraInfo?: string;
+  shootingTips?: string;
 };
 
 export type AnalyzeResponse = {

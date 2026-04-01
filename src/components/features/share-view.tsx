@@ -3,11 +3,12 @@
 import Image from "next/image";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { MapPin, Navigation, Gift, Utensils, Coffee, Landmark, Star, Sparkles, Maximize2 } from "lucide-react";
+import { MapPin, Navigation, Gift, Utensils, Coffee, Landmark, Star, Sparkles, Maximize2, Lightbulb, Camera } from "lucide-react";
 import dynamic from "next/dynamic";
 import type { NearbyPlace, PhotoAnalysis, ExifData } from "@/types";
 import { TagBadge } from "./tag-badge";
 import { ImagePreviewModal } from "./image-preview-modal";
+import { CameraInfoSection } from "./camera-info-section";
 
 const KakaoMap = dynamic(
   () => import("./kakao-map").then((m) => m.KakaoMap),
@@ -137,6 +138,28 @@ export function ShareView({ card }: { card: ShareCard }) {
               </span>
             ))}
           </div>
+        </motion.div>
+      )}
+
+      {/* 카메라 정보 */}
+      {(exif?.make || exif?.model || exif?.software || exif?.fNumber || exif?.iso || exif?.exposureTime || exif?.focalLength || exif?.lensModel) && (
+        <motion.div variants={item} className="rounded-2xl border border-border bg-card p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Camera className="h-4 w-4 text-primary" />
+            <h3 className="font-semibold">촬영 장치 및 설정</h3>
+          </div>
+          <CameraInfoSection exif={exif} />
+        </motion.div>
+      )}
+
+      {/* 촬영 꿀팁 */}
+      {analysis.shootingTips && (
+        <motion.div variants={item} className="rounded-2xl border border-border bg-card p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Lightbulb className="h-4 w-4 text-primary" />
+            <h3 className="font-semibold">비슷하게 찍는 법 &amp; 촬영 꿀팁</h3>
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{analysis.shootingTips}</p>
         </motion.div>
       )}
 

@@ -15,10 +15,13 @@ import {
   X,
   Pencil,
   Check,
+  Camera,
+  Lightbulb,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import type { PhotoAnalysis, NearbyPlace, Tag } from "@/types";
 import { usePhotoStore } from "@/stores/photo-store";
+import { CameraInfoSection } from "./camera-info-section";
 
 const KakaoMap = dynamic(
   () => import("./kakao-map").then((m) => m.KakaoMap),
@@ -348,6 +351,40 @@ export function EditableResultCard({
               </button>
             )}
           </div>
+        </motion.div>
+      )}
+
+      {/* 카메라 정보 */}
+      {(extractedExif?.make || extractedExif?.model || extractedExif?.software || extractedExif?.fNumber || extractedExif?.iso || extractedExif?.exposureTime || extractedExif?.focalLength || extractedExif?.lensModel) && (
+        <motion.div
+          variants={item}
+          className="rounded-2xl border border-border bg-card p-5"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Camera className="h-4 w-4 text-primary" />
+            <h3 className="font-semibold">촬영 장치 및 설정</h3>
+          </div>
+          <CameraInfoSection exif={extractedExif} />
+        </motion.div>
+      )}
+
+      {/* 촬영 꿀팁 */}
+      {analysis.shootingTips && (
+        <motion.div
+          variants={item}
+          className="rounded-2xl border border-border bg-card p-5"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Lightbulb className="h-4 w-4 text-primary" />
+            <h3 className="font-semibold">비슷하게 찍는 법 &amp; 촬영 꿀팁</h3>
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+            <InlineEdit
+              value={analysis.shootingTips}
+              onSave={(v) => update({ shootingTips: v })}
+              multiline
+            />
+          </p>
         </motion.div>
       )}
 

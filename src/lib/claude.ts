@@ -16,7 +16,7 @@ export async function analyzeImage(
 ) {
   const response = await anthropic.messages.create({
     model,
-    max_tokens: 1500,
+    max_tokens: 2000,
     messages: [
       {
         role: "user",
@@ -54,7 +54,9 @@ ${exifContext}
   "directions": {
     "currentLocation": "현재 위치의 정확한 이름 (예: 광양 배알도 수변공원, 광양읍 중심가 등 시/군/구 단위까지 포함)",
     "howToGet": "이 장소에 오는 방법 - 대중교통(버스/기차 노선)과 자차 경로를 각각 한 줄씩"
-  }
+  },
+  "cameraInfo": "카메라 기종 및 촬영 설정값 요약 (EXIF 정보 기반, 예: Sony α7 IV · f/2.8 · 1/500s · ISO 400 · 50mm). EXIF 없으면 사진에서 추정",
+  "shootingTips": "이 사진처럼 또는 더 잘 찍기 위한 실용적인 촬영 꿀팁 3~4가지를 자연스러운 문장으로. 구도, 시간대, 설정값, 후보정 등 포함"
 }
 
 태그 규칙:
