@@ -75,6 +75,13 @@ export function ShareView({ card }: { card: ShareCard }) {
         </motion.div>
       )}
 
+      {/* 태그 */}
+      <motion.div variants={item} className="flex flex-wrap gap-2">
+        {analysis.tags.map((tag, i) => (
+          <TagBadge key={`${tag.type}-${tag.label}`} tag={tag} index={i} />
+        ))}
+      </motion.div>
+
       {/* 감성 메시지 */}
       <motion.div
         variants={item}
@@ -85,12 +92,43 @@ export function ShareView({ card }: { card: ShareCard }) {
         <p className="mt-1 text-sm text-muted-foreground">{analysis.mood}</p>
       </motion.div>
 
-      {/* 태그 */}
-      <motion.div variants={item} className="flex flex-wrap gap-2">
-        {analysis.tags.map((tag, i) => (
-          <TagBadge key={`${tag.type}-${tag.label}`} tag={tag} index={i} />
-        ))}
-      </motion.div>
+      {/* 카메라 정보 */}
+      {(exif?.make || exif?.model || exif?.software || exif?.fNumber || exif?.iso || exif?.exposureTime || exif?.focalLength || exif?.lensModel) && (
+        <motion.div variants={item} className="rounded-2xl border border-border bg-card p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Camera className="h-4 w-4 text-primary" />
+            <h3 className="font-semibold">촬영 장치 및 설정</h3>
+          </div>
+          <CameraInfoSection exif={exif} />
+        </motion.div>
+      )}
+
+      {/* 촬영 꿀팁 */}
+      {analysis.shootingTips && (
+        <motion.div variants={item} className="rounded-2xl border border-border bg-card p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Lightbulb className="h-4 w-4 text-primary" />
+            <h3 className="font-semibold">비슷하게 찍는 법 &amp; 촬영 꿀팁</h3>
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{analysis.shootingTips}</p>
+        </motion.div>
+      )}
+
+      {/* 카카오맵 */}
+      {hasGps && (
+        <motion.div variants={item} className="rounded-2xl border border-border bg-card overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+            <Navigation className="h-4 w-4 text-primary shrink-0" />
+            <p className="text-sm font-medium text-foreground truncate">{displayAddress}</p>
+          </div>
+          <KakaoMap
+            lat={exif!.latitude!}
+            lng={exif!.longitude!}
+            address={displayAddress}
+            jsKey={process.env.NEXT_PUBLIC_KAKAO_JS_KEY!}
+          />
+        </motion.div>
+      )}
 
       {/* 주변 정보 */}
       {analysis.nearbyPlaces.length > 0 && (
@@ -138,44 +176,6 @@ export function ShareView({ card }: { card: ShareCard }) {
               </span>
             ))}
           </div>
-        </motion.div>
-      )}
-
-      {/* 카메라 정보 */}
-      {(exif?.make || exif?.model || exif?.software || exif?.fNumber || exif?.iso || exif?.exposureTime || exif?.focalLength || exif?.lensModel) && (
-        <motion.div variants={item} className="rounded-2xl border border-border bg-card p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <Camera className="h-4 w-4 text-primary" />
-            <h3 className="font-semibold">촬영 장치 및 설정</h3>
-          </div>
-          <CameraInfoSection exif={exif} />
-        </motion.div>
-      )}
-
-      {/* 촬영 꿀팁 */}
-      {analysis.shootingTips && (
-        <motion.div variants={item} className="rounded-2xl border border-border bg-card p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <Lightbulb className="h-4 w-4 text-primary" />
-            <h3 className="font-semibold">비슷하게 찍는 법 &amp; 촬영 꿀팁</h3>
-          </div>
-          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{analysis.shootingTips}</p>
-        </motion.div>
-      )}
-
-      {/* 카카오맵 */}
-      {hasGps && (
-        <motion.div variants={item} className="rounded-2xl border border-border bg-card overflow-hidden">
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
-            <Navigation className="h-4 w-4 text-primary shrink-0" />
-            <p className="text-sm font-medium text-foreground truncate">{displayAddress}</p>
-          </div>
-          <KakaoMap
-            lat={exif!.latitude!}
-            lng={exif!.longitude!}
-            address={displayAddress}
-            jsKey={process.env.NEXT_PUBLIC_KAKAO_JS_KEY!}
-          />
         </motion.div>
       )}
     </motion.div>
