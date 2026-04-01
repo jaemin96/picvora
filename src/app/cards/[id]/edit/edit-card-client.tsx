@@ -80,7 +80,7 @@ export function EditCardClient({ card }: { card: CardRow }) {
   const update = (partial: Partial<PhotoAnalysis>) => setAnalysis((a) => ({ ...a, ...partial }));
 
   const hasGps = card.exif?.latitude != null && card.exif?.longitude != null;
-  const displayAddress = card.address ?? analysis.directions?.currentLocation ?? "현재 위치";
+  const displayAddress = card.address ?? "현재 위치";
 
   const handleSave = async () => {
     setSaving(true);
@@ -277,25 +277,15 @@ export function EditCardClient({ card }: { card: CardRow }) {
             </motion.div>
           )}
 
-          {/* 지도 + 오는 방법 */}
-          {(hasGps || analysis.directions?.howToGet) && (
+          {/* 카카오맵 */}
+          {hasGps && (
             <motion.div variants={item} className="rounded-2xl border border-border bg-card overflow-hidden">
               <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
                 <Navigation className="h-4 w-4 text-primary shrink-0" />
                 <p className="text-sm font-medium truncate">{displayAddress}</p>
               </div>
-              {hasGps && (
-                <KakaoMap lat={card.exif!.latitude!} lng={card.exif!.longitude!}
-                  address={displayAddress} jsKey={process.env.NEXT_PUBLIC_KAKAO_JS_KEY!} />
-              )}
-              {analysis.directions?.howToGet && (
-                <div className="px-4 py-3 border-t border-border">
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    <InlineEdit value={analysis.directions.howToGet} multiline
-                      onSave={(v) => update({ directions: { ...analysis.directions!, howToGet: v } })} />
-                  </p>
-                </div>
-              )}
+              <KakaoMap lat={card.exif!.latitude!} lng={card.exif!.longitude!}
+                address={displayAddress} jsKey={process.env.NEXT_PUBLIC_KAKAO_JS_KEY!} />
             </motion.div>
           )}
         </motion.div>

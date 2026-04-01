@@ -42,7 +42,7 @@ type ShareCard = {
 export function ShareView({ card }: { card: ShareCard }) {
   const { analysis, address, exif, image_url } = card;
   const hasGps = exif?.latitude != null && exif?.longitude != null;
-  const displayAddress = address ?? analysis.directions?.currentLocation ?? "현재 위치";
+  const displayAddress = address ?? "현재 위치";
   const [previewOpen, setPreviewOpen] = useState(false);
 
   return (
@@ -163,28 +163,19 @@ export function ShareView({ card }: { card: ShareCard }) {
         </motion.div>
       )}
 
-      {/* 지도 + 오는 방법 */}
-      {(hasGps || analysis.directions?.howToGet) && (
+      {/* 카카오맵 */}
+      {hasGps && (
         <motion.div variants={item} className="rounded-2xl border border-border bg-card overflow-hidden">
           <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
             <Navigation className="h-4 w-4 text-primary shrink-0" />
             <p className="text-sm font-medium text-foreground truncate">{displayAddress}</p>
           </div>
-          {hasGps && (
-            <KakaoMap
-              lat={exif!.latitude!}
-              lng={exif!.longitude!}
-              address={displayAddress}
-              jsKey={process.env.NEXT_PUBLIC_KAKAO_JS_KEY!}
-            />
-          )}
-          {analysis.directions?.howToGet && (
-            <div className="px-4 py-3 border-t border-border">
-              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
-                {analysis.directions.howToGet}
-              </p>
-            </div>
-          )}
+          <KakaoMap
+            lat={exif!.latitude!}
+            lng={exif!.longitude!}
+            address={displayAddress}
+            jsKey={process.env.NEXT_PUBLIC_KAKAO_JS_KEY!}
+          />
         </motion.div>
       )}
     </motion.div>

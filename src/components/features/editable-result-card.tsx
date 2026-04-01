@@ -122,7 +122,7 @@ export function EditableResultCard({
   const [newSpecialtyValue, setNewSpecialtyValue] = useState("");
 
   const hasGps = extractedExif?.latitude != null && extractedExif?.longitude != null;
-  const displayAddress = address ?? analysis.directions?.currentLocation ?? "현재 위치";
+  const displayAddress = address ?? "현재 위치";
 
   const update = (partial: Partial<PhotoAnalysis>) => onChange({ ...analysis, ...partial });
 
@@ -388,8 +388,8 @@ export function EditableResultCard({
         </motion.div>
       )}
 
-      {/* 카카오맵 + 오는 방법 */}
-      {(hasGps || analysis.directions?.howToGet) && (
+      {/* 카카오맵 */}
+      {hasGps && (
         <motion.div
           variants={item}
           className="rounded-2xl border border-border bg-card overflow-hidden"
@@ -400,29 +400,12 @@ export function EditableResultCard({
               {displayAddress}
             </p>
           </div>
-          {hasGps && (
-            <KakaoMap
-              lat={extractedExif!.latitude!}
-              lng={extractedExif!.longitude!}
-              address={displayAddress}
-              jsKey={process.env.NEXT_PUBLIC_KAKAO_JS_KEY!}
-            />
-          )}
-          {analysis.directions?.howToGet && (
-            <div className="px-4 py-3 border-t border-border">
-              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
-                <InlineEdit
-                  value={analysis.directions.howToGet}
-                  onSave={(v) =>
-                    update({
-                      directions: { ...analysis.directions!, howToGet: v },
-                    })
-                  }
-                  multiline
-                />
-              </p>
-            </div>
-          )}
+          <KakaoMap
+            lat={extractedExif!.latitude!}
+            lng={extractedExif!.longitude!}
+            address={displayAddress}
+            jsKey={process.env.NEXT_PUBLIC_KAKAO_JS_KEY!}
+          />
         </motion.div>
       )}
     </motion.div>
