@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   // 사용자 프로필 별도 조회
-  const userIds = [...new Set((logs ?? []).map((l) => l.user_id))];
+  const userIds = Array.from(new Set((logs ?? []).map((l) => l.user_id)));
   const profileMap: Record<string, { display_name: string | null; email: string | null; avatar_url: string | null }> = {};
   if (userIds.length > 0) {
     const { data: profiles } = await admin
