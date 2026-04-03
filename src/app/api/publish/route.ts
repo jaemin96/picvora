@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { nanoid } from "@/lib/nanoid";
+import { logActivity } from "@/lib/log-activity";
 
 export async function POST(request: NextRequest) {
   try {
@@ -64,6 +65,8 @@ export async function POST(request: NextRequest) {
       console.error("DB insert error:", dbError);
       return NextResponse.json({ error: "저장에 실패했습니다." }, { status: 500 });
     }
+
+    logActivity(user.id, "photo_publish", { shareId, visibility });
 
     return NextResponse.json({ shareId, imageUrl });
   } catch (error) {

@@ -128,6 +128,7 @@ function LoginForm() {
       }
     }
 
+    fetch("/api/auth/login-log", { method: "POST" });
     router.push("/");
     router.refresh();
   };

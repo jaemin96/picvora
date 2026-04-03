@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { logActivity } from "@/lib/log-activity";
 
 export const dynamic = "force-dynamic";
 
@@ -112,6 +113,8 @@ export async function POST(request: NextRequest) {
         avatar_url: profile.avatar_url,
       }
     : null;
+
+  logActivity(user.id, "comment", { cardId, parentId: parentId ?? null });
 
   return NextResponse.json({
     comment: { ...data, profiles: profileData, liked: false },

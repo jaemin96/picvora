@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { logActivity } from "@/lib/log-activity";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,9 @@ export async function POST(request: NextRequest) {
   }
 
   await supabase.rpc("increment_view_count", { card_share_id: cardId });
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) logActivity(user.id, "card_view", { cardId });
 
   cookieStore.set(viewedKey, "1", {
     maxAge: 60 * 60 * 24,

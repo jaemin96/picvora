@@ -16,6 +16,7 @@ import {
   ChevronDown,
   MessageSquare,
   ChevronRight,
+  Activity,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppHeader } from "@/components/features/app-header";
@@ -40,7 +41,7 @@ type ManagedUser = {
 };
 
 type Filter = "pending" | "all" | "suspended" | "dormant" | "withdrawn";
-type AdminTab = "users" | "support";
+type AdminTab = "users" | "support" | "logs";
 type SupportFilter = "open" | "answered" | "closed" | "all";
 
 const SUSPEND_OPTIONS = [
@@ -466,6 +467,264 @@ function SupportPanel() {
   );
 }
 
+type LogEntry = {
+  id: string;
+  user_id: string;
+  action: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  profiles: { display_name: string | null; email: string | null; avatar_url: string | null } | null;
+};
+
+const ACTION_LABELS: Record<string, string> = {
+  login: "로그인",
+  photo_analyze: "AI 분석",
+  photo_publish: "카드 게시",
+  card_view: "카드 조회",
+  card_delete: "카드 삭제",
+  like: "좋아요",
+  comment: "댓글",
+  follow: "팔로우",
+};
+
+const ACTION_COLORS: Record<string, string> = {
+  photo_analyze: "bg-blue-500/10 text-blue-600",
+  photo_publish: "bg-green-500/10 text-green-600",
+  card_view: "bg-muted text-muted-foreground",
+  card_delete: "bg-destructive/10 text-destructive",
+  like: "bg-pink-500/10 text-pink-600",
+  comment: "bg-violet-500/10 text-violet-600",
+  follow: "bg-amber-500/10 text-amber-600",
+  login: "bg-primary/10 text-primary",
+};
+
+const ALL_ACTIONS = Object.keys(ACTION_LABELS);
+
+// metadata key → 한국어 레이블
+const META_LABELS: Record<string, string> = {
+  cardId: "카드",
+  shareId: "카드",
+  model: "모델",
+  visibility: "공개범위",
+  parentId: "대댓글",
+  targetUserId: "대상",
+};
+
+const VISIBILITY_LABELS: Record<string, string> = {
+  public: "전체공개",
+  followers: "팔로워",
+  private: "비공개",
+};
+
+function MetaChips({ metadata }: { metadata: Record<string, unknown> }) {
+  const entries = Object.entries(metadata).filter(([, v]) => v !== null && v !== undefined);
+  if (entries.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5 mt-1">
+      {entries.map(([k, v]) => {
+        const label = META_LABELS[k] ?? k;
+        const rawStr = String(v);
+
+        // cardId/shareId → 링크 칩
+        if (k === "cardId" || k === "shareId") {
+          return (
+            <a
+              key={k}
+              href={`/cards/${rawStr}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-xs text-primary hover:bg-primary/20 transition-colors"
+            >
+              <span className="text-primary/60">{label}</span>
+              <span className="font-medium">{rawStr.slice(0, 8)}…</span>
+            </a>
+          );
+        }
+
+        let valueStr = rawStr;
+        if (k === "visibility") valueStr = VISIBILITY_LABELS[valueStr] ?? valueStr;
+        if (k === "parentId") valueStr = "답글";
+        if (k === "targetUserId") valueStr = rawStr.slice(0, 8) + "…";
+
+        return (
+          <span
+            key={k}
+            className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+          >
+            <span className="text-foreground/50">{label}</span>
+            <span className="font-medium text-foreground">{valueStr}</span>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function LogCard({ log }: { log: LogEntry }) {
+  const [showRaw, setShowRaw] = useState(false);
+  const displayName = log.profiles?.display_name || log.profiles?.email?.split("@")[0] || "알 수 없음";
+  const colorClass = ACTION_COLORS[log.action] ?? "bg-muted text-muted-foreground";
+  const hasMetadata = Object.keys(log.metadata).length > 0;
+
+  return (
+    <div className="rounded-lg border border-border bg-card px-4 py-3">
+      <div className="flex items-start gap-3">
+        <div className="h-8 w-8 shrink-0 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+          {log.profiles?.avatar_url ? (
+            <Image src={log.profiles.avatar_url} alt="" width={32} height={32} className="object-cover" />
+          ) : (
+            <span className="text-xs font-medium text-muted-foreground">
+              {displayName[0]?.toUpperCase()}
+            </span>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 flex-wrap min-w-0">
+              <span className="text-sm font-medium truncate">{displayName}</span>
+              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${colorClass}`}>
+                {ACTION_LABELS[log.action] ?? log.action}
+              </span>
+            </div>
+            {hasMetadata && (
+              <button
+                onClick={() => setShowRaw((v) => !v)}
+                className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-mono transition-colors ${
+                  showRaw
+                    ? "bg-primary/10 text-primary"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                }`}
+              >
+                {"{ }"}
+              </button>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {new Date(log.created_at).toLocaleString("ko-KR", {
+              year: "numeric", month: "short", day: "numeric",
+              hour: "2-digit", minute: "2-digit", second: "2-digit",
+            })}
+          </p>
+          {!showRaw && <MetaChips metadata={log.metadata} />}
+          {showRaw && (
+            <pre className="mt-1.5 rounded-md bg-muted px-3 py-2 text-xs font-mono text-muted-foreground whitespace-pre-wrap break-all">
+              {JSON.stringify(log.metadata, null, 2)}
+            </pre>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LogsPanel() {
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [action, setAction] = useState<string>("");
+  const [userId, setUserId] = useState<string>("");
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(0);
+  const LIMIT = 50;
+
+  const fetchLogs = async (a: string, u: string, p: number) => {
+    setLoading(true);
+    const params = new URLSearchParams({ page: String(p), limit: String(LIMIT) });
+    if (a) params.set("action", a);
+    if (u) params.set("userId", u);
+    const res = await fetch(`/api/admin/logs?${params}`);
+    if (res.ok) {
+      const data = await res.json();
+      setLogs(data.logs);
+      setTotal(data.total);
+    } else {
+      toast.error("로그를 불러올 수 없습니다");
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchLogs(action, userId, page);
+  }, [action, userId, page]);
+
+  return (
+    <div className="space-y-4">
+      {/* 액션 필터 — 1행 가로 스크롤 탭 */}
+      <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+        {["", ...ALL_ACTIONS].map((a) => (
+          <button
+            key={a || "__all__"}
+            onClick={() => { setAction(a); setPage(0); }}
+            className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors whitespace-nowrap ${
+              action === a
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground hover:bg-muted/70"
+            }`}
+          >
+            {a === "" ? "전체" : ACTION_LABELS[a]}
+          </button>
+        ))}
+      </div>
+
+      {/* 사용자 ID 필터 */}
+      <div className="flex gap-2 items-center">
+        <input
+          type="text"
+          placeholder="User ID로 필터 (UUID)"
+          value={userId}
+          onChange={(e) => { setUserId(e.target.value); setPage(0); }}
+          className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+        />
+        {userId && (
+          <Button variant="outline" size="sm" onClick={() => { setUserId(""); setPage(0); }}>
+            초기화
+          </Button>
+        )}
+      </div>
+
+      {/* 로그 목록 */}
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : logs.length === 0 ? (
+        <div className="rounded-lg border border-border bg-muted/50 p-8 text-center">
+          <p className="text-sm text-muted-foreground">로그가 없습니다</p>
+        </div>
+      ) : (
+        <>
+          <p className="text-xs text-muted-foreground">총 {total.toLocaleString()}건</p>
+          <div className="space-y-2">
+            {logs.map((log) => <LogCard key={log.id} log={log} />)}
+          </div>
+
+          {/* 페이지네이션 */}
+          <div className="flex items-center justify-between pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === 0}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              이전
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              {page + 1} / {Math.max(1, Math.ceil(total / LIMIT))} 페이지
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={(page + 1) * LIMIT >= total}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              다음
+            </Button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const [adminTab, setAdminTab] = useState<AdminTab>("users");
 
@@ -568,6 +827,15 @@ export default function AdminPage() {
             <MessageSquare className="h-4 w-4" />
             문의 관리
           </Button>
+          <Button
+            variant={adminTab === "logs" ? "default" : "outline"}
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setAdminTab("logs")}
+          >
+            <Activity className="h-4 w-4" />
+            사용자 로그
+          </Button>
         </div>
 
         {/* 사용자 관리 탭 */}
@@ -663,6 +931,9 @@ export default function AdminPage() {
 
         {/* 문의 관리 탭 */}
         {adminTab === "support" && <SupportPanel />}
+
+        {/* 사용자 로그 탭 */}
+        {adminTab === "logs" && <LogsPanel />}
       </div>
     </main>
   );
