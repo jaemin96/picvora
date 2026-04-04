@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { logActivity } from "@/lib/log-activity";
 
 // DELETE /api/cards/[id] — 소프트삭제 (기본) / 완전삭제 (?permanent=true)
 export async function DELETE(
@@ -48,6 +49,7 @@ export async function DELETE(
       return NextResponse.json({ error: deleteError.message }, { status: 500 });
     }
 
+    logActivity(user.id, "card_delete", { cardId: card.share_id, type: "permanent" });
     return NextResponse.json({ ok: true, action: "permanent" });
   }
 
@@ -62,6 +64,7 @@ export async function DELETE(
     return NextResponse.json({ error: softError.message }, { status: 500 });
   }
 
+  logActivity(user.id, "card_delete", { cardId: card.share_id, type: "soft" });
   return NextResponse.json({ ok: true, action: "soft-delete" });
 }
 

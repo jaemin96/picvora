@@ -3,14 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Save } from "lucide-react";
+import { Save, Camera, Lightbulb, NotebookPen, Plus, X, Pencil, Check, MapPin, Utensils, Coffee, Landmark, Star, Navigation, Sparkles, Gift } from "lucide-react";
 import { motion } from "framer-motion";
-import {
-  MapPin, Utensils, Coffee, Landmark, Star, Navigation,
-  Sparkles, Gift, Plus, X, Pencil, Check,
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppHeader } from "@/components/features/app-header";
+import { CameraInfoSection } from "@/components/features/camera-info-section";
 import type { PhotoAnalysis, NearbyPlace, Tag, ExifData } from "@/types";
 import dynamic from "next/dynamic";
 
@@ -76,11 +73,15 @@ export function EditCardClient({ card }: { card: CardRow }) {
   const [newTagValue, setNewTagValue] = useState("");
   const [addingSpecialty, setAddingSpecialty] = useState(false);
   const [newSpecialtyValue, setNewSpecialtyValue] = useState("");
+  const [addingMemo, setAddingMemo] = useState(false);
+  const [memoTitle, setMemoTitle] = useState(card.analysis.memo?.title ?? "");
+  const [memoContent, setMemoContent] = useState(card.analysis.memo?.content ?? "");
 
   const update = (partial: Partial<PhotoAnalysis>) => setAnalysis((a) => ({ ...a, ...partial }));
 
   const hasGps = card.exif?.latitude != null && card.exif?.longitude != null;
-  const displayAddress = card.address ?? analysis.directions?.currentLocation ?? "현재 위치";
+  const displayAddress = card.address ?? "현재 위치";
+  const hasCameraInfo = !!(card.exif?.make || card.exif?.model || card.exif?.software || card.exif?.fNumber || card.exif?.iso || card.exif?.exposureTime || card.exif?.focalLength || card.exif?.lensModel);
 
   const handleSave = async () => {
     setSaving(true);
@@ -99,6 +100,20 @@ export function EditCardClient({ card }: { card: CardRow }) {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleMemoSave = () => {
+    const title = memoTitle.trim();
+    const content = memoContent.trim();
+    if (!content) return;
+    update({ memo: { title, content } });
+    setAddingMemo(false);
+  };
+
+  const handleMemoDelete = () => {
+    update({ memo: null });
+    setMemoTitle("");
+    setMemoContent("");
   };
 
   const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.08 } } };
@@ -126,18 +141,6 @@ export function EditCardClient({ card }: { card: CardRow }) {
             </motion.div>
           )}
 
-          {/* 감성 메시지 */}
-          <motion.div variants={item}
-            className="rounded-2xl bg-gradient-to-br from-primary/10 via-accent/10 to-highlight/10 p-6 text-center">
-            <Sparkles className="mx-auto mb-2 h-5 w-5 text-primary" />
-            <p className="text-lg font-semibold">
-              <InlineEdit value={analysis.shortcutMessage} onSave={(v) => update({ shortcutMessage: v })} />
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              <InlineEdit value={analysis.mood} onSave={(v) => update({ mood: v })} />
-            </p>
-          </motion.div>
-
           {/* 태그 */}
           <motion.div variants={item} className="flex flex-wrap gap-2 items-center">
             {analysis.tags.map((tag: Tag, i: number) => (
@@ -154,30 +157,18 @@ export function EditCardClient({ card }: { card: CardRow }) {
               </div>
             ))}
             {addingTag ? (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const label = newTagValue.trim();
-                  if (label) update({ tags: [...analysis.tags, { label, type: "subject" }] });
-                  setNewTagValue("");
-                  setAddingTag(false);
-                }}
-                className="flex items-center gap-1"
-              >
-                <input
-                  autoFocus
-                  value={newTagValue}
-                  onChange={(e) => setNewTagValue(e.target.value)}
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const label = newTagValue.trim();
+                if (label) update({ tags: [...analysis.tags, { label, type: "subject" }] });
+                setNewTagValue(""); setAddingTag(false);
+              }} className="flex items-center gap-1">
+                <input autoFocus value={newTagValue} onChange={(e) => setNewTagValue(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Escape") { setAddingTag(false); setNewTagValue(""); } }}
                   placeholder="태그 이름"
-                  className="w-24 rounded-full border border-primary/50 bg-background px-2.5 py-1 text-xs outline-none focus:ring-1 focus:ring-primary"
-                />
-                <button type="submit" className="rounded-full p-1 text-primary hover:bg-primary/10">
-                  <Check className="h-3.5 w-3.5" />
-                </button>
-                <button type="button" onClick={() => { setAddingTag(false); setNewTagValue(""); }} className="rounded-full p-1 text-muted-foreground hover:bg-muted">
-                  <X className="h-3.5 w-3.5" />
-                </button>
+                  className="w-24 rounded-full border border-primary/50 bg-background px-2.5 py-1 text-xs outline-none focus:ring-1 focus:ring-primary" />
+                <button type="submit" className="rounded-full p-1 text-primary hover:bg-primary/10"><Check className="h-3.5 w-3.5" /></button>
+                <button type="button" onClick={() => { setAddingTag(false); setNewTagValue(""); }} className="rounded-full p-1 text-muted-foreground hover:bg-muted"><X className="h-3.5 w-3.5" /></button>
               </form>
             ) : (
               <button onClick={() => setAddingTag(true)} className="flex items-center gap-1 rounded-full border border-dashed border-primary/40 px-2.5 py-1 text-xs text-primary/60 hover:border-primary hover:text-primary transition-colors">
@@ -185,6 +176,111 @@ export function EditCardClient({ card }: { card: CardRow }) {
               </button>
             )}
           </motion.div>
+
+          {/* 감성 메시지 */}
+          <motion.div variants={item}
+            className="rounded-2xl bg-gradient-to-br from-primary/10 via-accent/10 to-highlight/10 p-6 text-center">
+            <Sparkles className="mx-auto mb-2 h-5 w-5 text-primary" />
+            <p className="text-lg font-semibold">
+              <InlineEdit value={analysis.shortcutMessage} onSave={(v) => update({ shortcutMessage: v })} />
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              <InlineEdit value={analysis.mood} onSave={(v) => update({ mood: v })} />
+            </p>
+          </motion.div>
+
+          {/* 카메라 정보 */}
+          {hasCameraInfo && (
+            <motion.div variants={item} className="rounded-2xl border border-border bg-card p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Camera className="h-4 w-4 text-primary" />
+                <h3 className="font-semibold">촬영 장치 및 설정</h3>
+              </div>
+              <CameraInfoSection exif={card.exif} />
+            </motion.div>
+          )}
+
+          {/* 촬영 꿀팁 */}
+          {analysis.shootingTips && (
+            <motion.div variants={item} className="rounded-2xl border border-border bg-card p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Lightbulb className="h-4 w-4 text-primary" />
+                <h3 className="font-semibold">비슷하게 찍는 법 &amp; 촬영 꿀팁</h3>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                <InlineEdit value={analysis.shootingTips} onSave={(v) => update({ shootingTips: v })} multiline />
+              </p>
+            </motion.div>
+          )}
+
+          {/* 메모 */}
+          {analysis.memo ? (
+            <motion.div variants={item} className="rounded-2xl border border-border bg-card p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <NotebookPen className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold">
+                    <InlineEdit value={analysis.memo.title || "메모"} onSave={(v) => update({ memo: { ...analysis.memo!, title: v } })} />
+                  </h3>
+                </div>
+                <button onClick={handleMemoDelete} className="rounded-full p-1 text-muted-foreground hover:text-destructive hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                <InlineEdit value={analysis.memo.content} onSave={(v) => update({ memo: { ...analysis.memo!, content: v } })} multiline />
+              </p>
+            </motion.div>
+          ) : addingMemo ? (
+            <motion.div variants={item} className="rounded-2xl border border-primary/30 bg-card p-5 space-y-3">
+              <div className="flex items-center gap-2 mb-1">
+                <NotebookPen className="h-4 w-4 text-primary" />
+                <input
+                  value={memoTitle}
+                  onChange={(e) => setMemoTitle(e.target.value)}
+                  placeholder="타이틀 (선택)"
+                  className="flex-1 rounded border border-primary/30 bg-background px-2 py-1 text-sm font-semibold outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <textarea
+                autoFocus
+                value={memoContent}
+                onChange={(e) => setMemoContent(e.target.value)}
+                placeholder="자유롭게 메모를 남겨보세요..."
+                rows={4}
+                className="w-full resize-none rounded border border-primary/30 bg-background px-3 py-2 text-sm text-muted-foreground outline-none focus:ring-1 focus:ring-primary leading-relaxed"
+              />
+              <div className="flex justify-end gap-2">
+                <button onClick={() => { setAddingMemo(false); setMemoTitle(""); setMemoContent(""); }}
+                  className="rounded-lg px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted transition-colors">
+                  취소
+                </button>
+                <button onClick={handleMemoSave} disabled={!memoContent.trim()}
+                  className="flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40">
+                  <Check className="h-3.5 w-3.5" /> 저장
+                </button>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div variants={item}>
+              <button onClick={() => setAddingMemo(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-primary/30 py-3 text-sm text-primary/60 hover:border-primary hover:text-primary transition-colors">
+                <Plus className="h-4 w-4" /> 메모 추가
+              </button>
+            </motion.div>
+          )}
+
+          {/* 카카오맵 */}
+          {hasGps && (
+            <motion.div variants={item} className="rounded-2xl border border-border bg-card overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+                <Navigation className="h-4 w-4 text-primary shrink-0" />
+                <p className="text-sm font-medium truncate">{displayAddress}</p>
+              </div>
+              <KakaoMap lat={card.exif!.latitude!} lng={card.exif!.longitude!}
+                address={displayAddress} jsKey={process.env.NEXT_PUBLIC_KAKAO_JS_KEY!} />
+            </motion.div>
+          )}
 
           {/* 주변 정보 */}
           {analysis.nearbyPlaces.length > 0 && (
@@ -243,30 +339,18 @@ export function EditCardClient({ card }: { card: CardRow }) {
                   </div>
                 ))}
                 {addingSpecialty ? (
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      const s = newSpecialtyValue.trim();
-                      if (s) update({ specialties: [...analysis.specialties, s] });
-                      setNewSpecialtyValue("");
-                      setAddingSpecialty(false);
-                    }}
-                    className="flex items-center gap-1"
-                  >
-                    <input
-                      autoFocus
-                      value={newSpecialtyValue}
-                      onChange={(e) => setNewSpecialtyValue(e.target.value)}
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    const s = newSpecialtyValue.trim();
+                    if (s) update({ specialties: [...analysis.specialties, s] });
+                    setNewSpecialtyValue(""); setAddingSpecialty(false);
+                  }} className="flex items-center gap-1">
+                    <input autoFocus value={newSpecialtyValue} onChange={(e) => setNewSpecialtyValue(e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Escape") { setAddingSpecialty(false); setNewSpecialtyValue(""); } }}
                       placeholder="명물 이름"
-                      className="w-24 rounded-full border border-primary/50 bg-background px-2.5 py-1 text-xs outline-none focus:ring-1 focus:ring-primary"
-                    />
-                    <button type="submit" className="rounded-full p-1 text-primary hover:bg-primary/10">
-                      <Check className="h-3.5 w-3.5" />
-                    </button>
-                    <button type="button" onClick={() => { setAddingSpecialty(false); setNewSpecialtyValue(""); }} className="rounded-full p-1 text-muted-foreground hover:bg-muted">
-                      <X className="h-3.5 w-3.5" />
-                    </button>
+                      className="w-24 rounded-full border border-primary/50 bg-background px-2.5 py-1 text-xs outline-none focus:ring-1 focus:ring-primary" />
+                    <button type="submit" className="rounded-full p-1 text-primary hover:bg-primary/10"><Check className="h-3.5 w-3.5" /></button>
+                    <button type="button" onClick={() => { setAddingSpecialty(false); setNewSpecialtyValue(""); }} className="rounded-full p-1 text-muted-foreground hover:bg-muted"><X className="h-3.5 w-3.5" /></button>
                   </form>
                 ) : (
                   <button onClick={() => setAddingSpecialty(true)} className="flex items-center gap-1 rounded-full border border-dashed border-primary/40 px-2.5 py-1 text-xs text-primary/60 hover:border-primary hover:text-primary transition-colors">
@@ -277,27 +361,7 @@ export function EditCardClient({ card }: { card: CardRow }) {
             </motion.div>
           )}
 
-          {/* 지도 + 오는 방법 */}
-          {(hasGps || analysis.directions?.howToGet) && (
-            <motion.div variants={item} className="rounded-2xl border border-border bg-card overflow-hidden">
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
-                <Navigation className="h-4 w-4 text-primary shrink-0" />
-                <p className="text-sm font-medium truncate">{displayAddress}</p>
-              </div>
-              {hasGps && (
-                <KakaoMap lat={card.exif!.latitude!} lng={card.exif!.longitude!}
-                  address={displayAddress} jsKey={process.env.NEXT_PUBLIC_KAKAO_JS_KEY!} />
-              )}
-              {analysis.directions?.howToGet && (
-                <div className="px-4 py-3 border-t border-border">
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    <InlineEdit value={analysis.directions.howToGet} multiline
-                      onSave={(v) => update({ directions: { ...analysis.directions!, howToGet: v } })} />
-                  </p>
-                </div>
-              )}
-            </motion.div>
-          )}
+          <div className="pb-8" />
         </motion.div>
       </div>
     </main>

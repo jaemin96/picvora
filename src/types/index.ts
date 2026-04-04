@@ -1,6 +1,7 @@
 export type ExifData = {
   make?: string;
   model?: string;
+  software?: string;
   latitude?: number;
   longitude?: number;
   dateTime?: string;
@@ -34,18 +35,15 @@ export type NearbyPlace = {
   address?: string;
 };
 
-export type DirectionInfo = {
-  currentLocation: string;    // 현재 위치명 (예: 광양 배알도 수변공원)
-  howToGet: string;           // 오는 방법 (대중교통/자차)
-};
-
 export type PhotoAnalysis = {
   tags: Tag[];
   mood: string;
   shortcutMessage: string;
   nearbyPlaces: NearbyPlace[];
   specialties: string[];
-  directions?: DirectionInfo;
+  cameraInfo?: string;
+  shootingTips?: string;
+  memo?: { title: string; content: string } | null;
 };
 
 export type AnalyzeResponse = {

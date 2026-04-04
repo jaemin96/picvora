@@ -4,6 +4,7 @@ import { analyzeImage } from "@/lib/claude";
 import { DEFAULT_MODEL, CLAUDE_MODELS, type ClaudeModelId } from "@/lib/claude-models";
 import { reverseGeocode } from "@/lib/kakao-geo";
 import { createClient } from "@/lib/supabase/server";
+import { logActivity } from "@/lib/log-activity";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const MAX_RAW_BYTES = Math.floor(MAX_BYTES / 1.37);
@@ -96,6 +97,8 @@ export async function POST(request: NextRequest) {
 
     const exifContext = buildExifContext(exif, address);
     const analysis = await analyzeImage(base64, contentType, exifContext, model);
+
+    logActivity(user.id, "photo_analyze", { model });
 
     return NextResponse.json({ analysis, exif, address });
   } catch (error) {

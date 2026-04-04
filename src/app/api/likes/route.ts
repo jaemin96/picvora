@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { logActivity } from "@/lib/log-activity";
 
 // GET /api/likes?cardId=xxx — 내가 좋아요 했는지 + 총 개수
 export async function GET(request: NextRequest) {
@@ -48,6 +49,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ liked: false });
   } else {
     await supabase.from("card_likes").insert({ card_id: cardId, user_id: user.id });
+    logActivity(user.id, "like", { cardId });
     return NextResponse.json({ liked: true });
   }
 }

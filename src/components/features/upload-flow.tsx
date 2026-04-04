@@ -576,8 +576,15 @@ export function UploadFlow({
               </motion.div>
 
               <div className="w-full max-w-lg space-y-4">
-                {/* 이미지 영역 스켈레톤 */}
+                {/* 이미지 스켈레톤 */}
                 <SkeletonBlock className="h-52 w-full rounded-2xl" />
+
+                {/* 태그 스켈레톤 */}
+                <div className="flex flex-wrap gap-2">
+                  {[80, 64, 72, 56, 88].map((w, i) => (
+                    <SkeletonBlock key={i} className="h-7 rounded-full" style={{ width: w }} />
+                  ))}
+                </div>
 
                 {/* 감성 메시지 스켈레톤 */}
                 <div className="rounded-2xl border border-border bg-card p-6 space-y-3">
@@ -586,11 +593,42 @@ export function UploadFlow({
                   <SkeletonBlock className="h-3.5 w-1/2 mx-auto rounded-lg" />
                 </div>
 
-                {/* 태그 스켈레톤 */}
-                <div className="flex flex-wrap gap-2">
-                  {[80, 64, 72, 56, 88].map((w, i) => (
-                    <SkeletonBlock key={i} className={`h-7 rounded-full`} style={{ width: w }} />
-                  ))}
+                {/* 카메라 정보 스켈레톤 */}
+                <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <SkeletonBlock className="h-4 w-4 rounded-md" />
+                    <SkeletonBlock className="h-4 w-28 rounded-lg" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div key={i} className="space-y-1">
+                        <SkeletonBlock className="h-3 w-16 rounded" />
+                        <SkeletonBlock className="h-3.5 w-24 rounded" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 촬영 꿀팁 스켈레톤 */}
+                <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <SkeletonBlock className="h-4 w-4 rounded-md" />
+                    <SkeletonBlock className="h-4 w-36 rounded-lg" />
+                  </div>
+                  <div className="space-y-2">
+                    <SkeletonBlock className="h-3 w-full rounded" />
+                    <SkeletonBlock className="h-3 w-full rounded" />
+                    <SkeletonBlock className="h-3 w-4/5 rounded" />
+                  </div>
+                </div>
+
+                {/* 카카오맵 스켈레톤 */}
+                <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+                    <SkeletonBlock className="h-4 w-4 rounded-md" />
+                    <SkeletonBlock className="h-3.5 w-32 rounded" />
+                  </div>
+                  <SkeletonBlock className="h-48 w-full rounded-none" />
                 </div>
 
                 {/* 주변 정보 스켈레톤 */}
@@ -610,16 +648,16 @@ export function UploadFlow({
                   ))}
                 </div>
 
-                {/* 카카오맵 스켈레톤 */}
-                <div className="rounded-2xl border border-border bg-card overflow-hidden">
-                  <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+                {/* 특산물 스켈레톤 */}
+                <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
+                  <div className="flex items-center gap-2">
                     <SkeletonBlock className="h-4 w-4 rounded-md" />
-                    <SkeletonBlock className="h-3.5 w-32 rounded" />
+                    <SkeletonBlock className="h-4 w-24 rounded-lg" />
                   </div>
-                  <SkeletonBlock className="h-48 w-full rounded-none" />
-                  <div className="px-4 py-3 border-t border-border space-y-1.5">
-                    <SkeletonBlock className="h-3 w-full rounded" />
-                    <SkeletonBlock className="h-3 w-4/5 rounded" />
+                  <div className="flex flex-wrap gap-2">
+                    {[56, 72, 64, 80].map((w, i) => (
+                      <SkeletonBlock key={i} className="h-7 rounded-full" style={{ width: w }} />
+                    ))}
                   </div>
                 </div>
               </div>

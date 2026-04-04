@@ -11,12 +11,12 @@ const tagStyles: Record<TagType, string> = {
   specialty: "bg-rose-500/15 text-rose-700 border-rose-500/20",
 };
 
-const tagIcons: Record<TagType, string> = {
-  mood: "💜",
-  location: "📍",
-  time: "🕐",
-  subject: "📷",
-  specialty: "🎁",
+const tagIconPools: Record<TagType, string[]> = {
+  mood: ["💜", "✨", "🌸", "🎵", "🌙", "☀️", "🌈", "💫", "🍃", "❄️"],
+  location: ["📍", "🗺️", "🏙️", "🌍", "🧭", "🏔️", "🌊", "🌿", "🏞️", "🗼"],
+  time: ["🕐", "🌅", "🌇", "🌃", "🌄", "⏰", "🌞", "🌛", "🌤️", "🕰️"],
+  subject: ["📷", "🎨", "🌺", "🐾", "🍜", "🎭", "🏛️", "🚗", "🌻", "🎪"],
+  specialty: ["🎁", "🍱", "🏅", "⭐", "🍡", "🎎", "🫧", "🎐", "🍶", "🧧"],
 };
 
 export function TagBadge({ tag, index }: { tag: Tag; index: number }) {
@@ -27,7 +27,7 @@ export function TagBadge({ tag, index }: { tag: Tag; index: number }) {
       transition={{ delay: index * 0.05 }}
       className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium ${tagStyles[tag.type]}`}
     >
-      <span>{tagIcons[tag.type]}</span>
+      <span>{tagIconPools[tag.type][index % tagIconPools[tag.type].length]}</span>
       {tag.label}
     </motion.span>
   );

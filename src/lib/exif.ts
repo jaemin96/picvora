@@ -6,6 +6,7 @@ export async function extractExifData(file: File): Promise<ExifData> {
     pick: [
       "Make",
       "Model",
+      "Software",
       "GPSLatitude",
       "GPSLongitude",
       "DateTimeOriginal",
@@ -23,6 +24,7 @@ export async function extractExifData(file: File): Promise<ExifData> {
   return {
     make: raw.Make,
     model: raw.Model,
+    software: raw.Software,
     latitude: raw.latitude,
     longitude: raw.longitude,
     dateTime: raw.DateTimeOriginal?.toISOString?.() ?? raw.DateTimeOriginal,

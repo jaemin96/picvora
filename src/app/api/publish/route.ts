@@ -36,6 +36,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "저장에 실패했습니다." }, { status: 500 });
     }
 
+    logActivity(user.id, "photo_publish", { shareId, visibility });
+
     return NextResponse.json({ shareId, imageUrl });
   } catch (error) {
     console.error("Publish API error:", error);

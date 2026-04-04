@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { Navigation } from "lucide-react";
 
 interface KakaoMapProps {
   lat: number;
@@ -70,7 +71,20 @@ export function KakaoMap({ lat, lng, address, jsKey }: KakaoMapProps) {
     document.head.appendChild(script);
   }, [lat, lng, address, jsKey]);
 
+  const kakaoNavUrl = `https://map.kakao.com/?eName=${encodeURIComponent(address)}&eY=${lat}&eX=${lng}`;
+
   return (
-    <div ref={containerRef} style={{ width: "100%", height: 240 }} />
+    <div>
+      <div ref={containerRef} style={{ width: "100%", height: 240 }} />
+      <a
+        href={kakaoNavUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-medium text-primary border-t border-border hover:bg-muted transition-colors"
+      >
+        <Navigation className="h-4 w-4" />
+        길찾기
+      </a>
+    </div>
   );
 }
