@@ -624,7 +624,7 @@ function LogsPanel() {
   const [userId, setUserId] = useState<string>("");
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
-  const LIMIT = 50;
+  const LIMIT = 10;
 
   const fetchLogs = async (a: string, u: string, p: number) => {
     setLoading(true);
