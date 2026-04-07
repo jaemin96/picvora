@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { nanoid } from "@/lib/nanoid";
 import { logActivity } from "@/lib/log-activity";
 
 export async function POST(request: NextRequest) {
@@ -13,42 +12,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const formData = await request.formData();
+    const body = await request.json();
+    const { shareId, imageUrl, analysis, visibility: visibilityRaw, exif, address } = body;
 
-    const analysisRaw = formData.get("analysis") as string | null;
-    const exifRaw = formData.get("exif") as string | null;
-    const address = formData.get("address") as string | null;
-    const visibilityRaw = (formData.get("visibility") as string | null) ?? "public";
-    const visibility = ["public", "followers", "private"].includes(visibilityRaw) ? visibilityRaw : "public";
-    const imageFile = formData.get("image") as File | null;
-
-    if (!analysisRaw) {
+    if (!analysis) {
       return NextResponse.json({ error: "분석 데이터가 없습니다." }, { status: 400 });
     }
 
-    const analysis = JSON.parse(analysisRaw);
-    const exif = exifRaw ? JSON.parse(exifRaw) : {};
-
-    const shareId = nanoid();
-    let imageUrl: string | null = null;
-
-    // 이미지 업로드
-    if (imageFile) {
-      const fileName = `${user.id}/${shareId}.jpg`;
-      const bytes = await imageFile.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-
-      const { error: uploadError } = await supabase.storage
-        .from("photos")
-        .upload(fileName, buffer, { contentType: "image/jpeg", upsert: false });
-
-      if (uploadError) {
-        console.error("Storage upload error:", JSON.stringify(uploadError));
-      } else {
-        const { data } = supabase.storage.from("photos").getPublicUrl(fileName);
-        imageUrl = data.publicUrl;
-      }
-    }
+    const visibility = ["public", "followers", "private"].includes(visibilityRaw) ? visibilityRaw : "public";
 
     // DB 저장
     const { error: dbError } = await supabase.from("photo_cards").insert({

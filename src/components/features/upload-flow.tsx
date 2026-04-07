@@ -12,8 +12,46 @@ import { ImageCropEditor } from "./image-crop-editor";
 import { LocationSearch } from "./location-search";
 import type { PhotoAnalysis, Visibility } from "@/types";
 import { CLAUDE_MODELS, DEFAULT_MODEL, type ClaudeModelId } from "@/lib/claude-models";
+import { createClient } from "@/lib/supabase/client";
+import { nanoid } from "@/lib/nanoid";
 
 const IS_DEV = process.env.NODE_ENV === "development";
+
+// Vercel serverless limit: 4.5MB. Compress client-side before sending.
+async function compressForUpload(file: File): Promise<File> {
+  const MAX_SIZE = 3.5 * 1024 * 1024; // 3.5MB target, well under 4.5MB limit
+  if (file.size <= MAX_SIZE) return file;
+
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement("canvas");
+      let { width, height } = img;
+      // Scale down proportionally
+      const maxDim = 2048;
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => resolve(blob ? new File([blob], file.name, { type: "image/jpeg" }) : file),
+        "image/jpeg",
+        0.8
+      );
+    };
+    img.src = url;
+  });
+}
 
 const VISIBILITY_OPTIONS: { value: Visibility; label: string; icon: typeof Globe; desc: string }[] = [
   { value: "public", label: "전체 공개", icon: Globe, desc: "누구나 볼 수 있어요" },
@@ -161,8 +199,9 @@ export function UploadFlow({
     setError(null);
 
     try {
+      const compressed = await compressForUpload(file);
       const formData = new FormData();
-      formData.append("image", file);
+      formData.append("image", compressed);
       const currentExif = usePhotoStore.getState().extractedExif;
       if (currentExif) formData.append("exif", JSON.stringify(currentExif));
       formData.append("model", selectedModel);
@@ -195,16 +234,31 @@ export function UploadFlow({
     setStep("publishing");
 
     try {
-      const formData = new FormData();
-      formData.append("image", file);
-      formData.append("analysis", JSON.stringify(editedAnalysis));
-      formData.append("visibility", visibility);
-      if (extractedExif) formData.append("exif", JSON.stringify(extractedExif));
-      if (address) formData.append("address", address);
+      // Upload original file directly to Supabase Storage (bypasses Vercel 4.5MB limit)
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("로그인이 필요합니다.");
+
+      const shareId = nanoid();
+      const fileName = `${user.id}/${shareId}.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from("photos")
+        .upload(fileName, file, { contentType: file.type, upsert: false });
+      if (uploadError) throw new Error("이미지 업로드에 실패했습니다.");
+
+      const { data: urlData } = supabase.storage.from("photos").getPublicUrl(fileName);
 
       const res = await fetch("/api/publish", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          shareId,
+          imageUrl: urlData.publicUrl,
+          analysis: editedAnalysis,
+          visibility,
+          exif: extractedExif ?? {},
+          address: address ?? null,
+        }),
       });
 
       if (!res.ok) {
